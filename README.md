@@ -8,6 +8,9 @@ In order to start the App:
 4. run "npm run dev" in the terminal
 5. Click on the link that shows up and see the webpage
 6. After changing the code, save the file and see the changes on the webpage
+7. Run "git add *" in the terminal
+8. Run "git commit -m MY_MESSAGE" in the terminal (and describe your changes)
+9. Run "git push" in the terminal
 
 Group members:
 * Helen Bielawa
