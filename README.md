@@ -1,5 +1,14 @@
 # mvtec-dataviz-project-group1
 
+In order to start the App:
+
+1. Clone the Github Repo (for initial start)/ pull current status
+2. Open the project in VS Code (or other program)
+3. Open the terminal, run "npm i"
+4. run "npm run dev" in the terminal
+5. Click on the link that shows up and see the webpage
+6. After changing the code, save the file and see the changes on the webpage
+
 Group members:
 * Helen Bielawa
 * Joseph Ricafort
