@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
-  import ShowValue from "./components/ShowValue.svelte";
+  //import RussData from "./data/Reliance on Russian imports.csv";
+  //import Russ_Imports_Multiline from "./BarChart.svelte";
 
 </script>
 
@@ -9,7 +10,9 @@
 		Fossil Fuel Production
 	</h1>
 
-Here we can include or texts, styles and visuals.
+Here we can include our texts, styles and visuals.
+TEST
+
 </main>
 
 <style>
