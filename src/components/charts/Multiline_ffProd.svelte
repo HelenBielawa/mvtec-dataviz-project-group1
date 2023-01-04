@@ -1,5 +1,4 @@
 <script>
-	import Axis from '../common/Axis.svelte';
 	import PointInteractive from '../common/PointInteractive.svelte';
 	import {line, curveStep} from 'd3-shape';
     import {scaleTime, scaleLinear} from 'd3-scale';
@@ -7,8 +6,9 @@
     import { Delaunay } from 'd3-delaunay'
     
     export let data;
+    export let x;
+    export let y;
 	export let margin = {top: 20, right: 5, bottom: 20, left: 5};
-	export let format;
 	export let key;
     export let color;
     export let title;
@@ -19,17 +19,21 @@
     
     const _data = key.y.map( (key, i) => data.map(d => ({x: d.time, y: d[key], key:key, color: color[i]} )))
 		
-	$: x = scaleTime()
-		.domain(extent(_data.flat(), d => d.x))
+	$: xScale = scaleTime()
+		.domain(extent(data.x))
 		.range([margin.left, width - margin.right]);
 	
-	$: y = scaleLinear()
-		.domain([0, max(_data.flat(), d => d.y)])
+	$: yScale = scaleLinear()
+		.domain([0, max(data.y)])
 		.range([height - margin.bottom - margin.top, margin.top]);
+    
+    $: xAxis = d3.axisBottom(xScale).ticks(width / 80).tickSizeOuter(0);
+
+    $: yAxis = d3.axisLeft(yScale).ticks(height / 60, yFormat);
 
 	$: path = line()
-		.x(d => x(d.x))
-		.y(d => y(d.y))
+		.x(d => xScale(d.x))
+		.y(d => yScale(d.y))
         .curve(curveStep);
 
     $: delaunay = Delaunay.from(_data.flat(), d => x(d.x), d => y(d.y))
@@ -78,10 +82,10 @@
             {/each}
         </g>
     
-        <Axis {width} {height} {margin} scale={y} position='left' format={format.y} />
-        <Axis {width} {height} {margin} scale={x} position='bottom' format={format.x} />
+        <!--<yAxis {width} {height} {margin} scale={y} position='left' format={format.y} />
+        <xAxis {width} {height} {margin} scale={x} position='bottom' format={format.x} />
     
-        <PointInteractive {datum} {format} {x} {y} key={{x:'x', y:'y'}} {width} />
+        <PointInteractive {datum} {format} {x} {y} key={{x:'x', y:'y'}} {width} />-->
         
     </svg>
     {/if}
