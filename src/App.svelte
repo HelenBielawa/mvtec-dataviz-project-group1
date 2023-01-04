@@ -1,8 +1,10 @@
 <script>
   import { onMount } from "svelte";
-  //import RussData from "./data/Reliance on Russian imports.csv";
+ // import RussData from "./data/Reliance on Russian imports.csv";
   //import Russ_Imports_Multiline from "./BarChart.svelte";
-
+  import Line from "./components/charts/Line.svelte";
+	let RussData = [{Year: 2000, Percentage: 80}, {Year: 2001, Percentage: 50}, {Year: 2002, Percentage: 30}]
+	console.log(RussData)
 </script>
 
 <main>
@@ -10,9 +12,14 @@
 		Fossil Fuel Production
 	</h1>
 
-Here we can include our texts, styles and visuals.
-TEST CHANGE
-
+	Here we can include our texts, styles and visuals.
+	TEST CHANGE
+	<Line data={RussData}
+	key={{x: RussData["Year"], y: RussData["Percentage"]}}
+	color="blue"
+	title="How much of a countries fossil fuels come from Russia?"
+	desc="Data from xy"
+	layout="fossil fuels"/>
 </main>
 
 <style>
