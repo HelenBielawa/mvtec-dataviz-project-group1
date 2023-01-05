@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   //import RussData from "./data/Reliance on Russian imports.csv";
   //import Russ_Imports_Multiline from "./BarChart.svelte";
+  import FFRenChart from "./components/FFRenChart.svelte";
 
 </script>
 
@@ -12,6 +13,8 @@
 
 Here we can include our texts, styles and visuals.
 TEST CHANGE
+
+	<FFRenChart />
 
 </main>
 
