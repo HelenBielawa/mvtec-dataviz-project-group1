@@ -1990,6 +1990,58 @@ var app = (function () {
       return area;
     }
 
+    function point(that, x, y) {
+      that._context.bezierCurveTo(
+        (2 * that._x0 + that._x1) / 3,
+        (2 * that._y0 + that._y1) / 3,
+        (that._x0 + 2 * that._x1) / 3,
+        (that._y0 + 2 * that._y1) / 3,
+        (that._x0 + 4 * that._x1 + x) / 6,
+        (that._y0 + 4 * that._y1 + y) / 6
+      );
+    }
+
+    function Basis(context) {
+      this._context = context;
+    }
+
+    Basis.prototype = {
+      areaStart: function() {
+        this._line = 0;
+      },
+      areaEnd: function() {
+        this._line = NaN;
+      },
+      lineStart: function() {
+        this._x0 = this._x1 =
+        this._y0 = this._y1 = NaN;
+        this._point = 0;
+      },
+      lineEnd: function() {
+        switch (this._point) {
+          case 3: point(this, this._x1, this._y1); // proceed
+          case 2: this._context.lineTo(this._x1, this._y1); break;
+        }
+        if (this._line || (this._line !== 0 && this._point === 1)) this._context.closePath();
+        this._line = 1 - this._line;
+      },
+      point: function(x, y) {
+        x = +x, y = +y;
+        switch (this._point) {
+          case 0: this._point = 1; this._line ? this._context.lineTo(x, y) : this._context.moveTo(x, y); break;
+          case 1: this._point = 2; break;
+          case 2: this._point = 3; this._context.lineTo((5 * this._x0 + this._x1) / 6, (5 * this._y0 + this._y1) / 6); // proceed
+          default: point(this, x, y); break;
+        }
+        this._x0 = this._x1, this._x1 = x;
+        this._y0 = this._y1, this._y1 = y;
+      }
+    };
+
+    function curveBasis(context) {
+      return new Basis(context);
+    }
+
     function Step(context, t) {
       this._context = context;
       this._t = t;
@@ -3422,46 +3474,47 @@ var app = (function () {
       return domain;
     }
 
-    const t0 = new Date, t1 = new Date;
+    var t0 = new Date,
+        t1 = new Date;
 
-    function timeInterval(floori, offseti, count, field) {
+    function newInterval(floori, offseti, count, field) {
 
       function interval(date) {
         return floori(date = arguments.length === 0 ? new Date : new Date(+date)), date;
       }
 
-      interval.floor = (date) => {
+      interval.floor = function(date) {
         return floori(date = new Date(+date)), date;
       };
 
-      interval.ceil = (date) => {
+      interval.ceil = function(date) {
         return floori(date = new Date(date - 1)), offseti(date, 1), floori(date), date;
       };
 
-      interval.round = (date) => {
-        const d0 = interval(date), d1 = interval.ceil(date);
+      interval.round = function(date) {
+        var d0 = interval(date),
+            d1 = interval.ceil(date);
         return date - d0 < d1 - date ? d0 : d1;
       };
 
-      interval.offset = (date, step) => {
+      interval.offset = function(date, step) {
         return offseti(date = new Date(+date), step == null ? 1 : Math.floor(step)), date;
       };
 
-      interval.range = (start, stop, step) => {
-        const range = [];
+      interval.range = function(start, stop, step) {
+        var range = [], previous;
         start = interval.ceil(start);
         step = step == null ? 1 : Math.floor(step);
         if (!(start < stop) || !(step > 0)) return range; // also handles Invalid Date
-        let previous;
         do range.push(previous = new Date(+start)), offseti(start, step), floori(start);
         while (previous < start && start < stop);
         return range;
       };
 
-      interval.filter = (test) => {
-        return timeInterval((date) => {
+      interval.filter = function(test) {
+        return newInterval(function(date) {
           if (date >= date) while (floori(date), !test(date)) date.setTime(date - 1);
-        }, (date, step) => {
+        }, function(date, step) {
           if (date >= date) {
             if (step < 0) while (++step <= 0) {
               while (offseti(date, -1), !test(date)) {} // eslint-disable-line no-empty
@@ -3473,43 +3526,43 @@ var app = (function () {
       };
 
       if (count) {
-        interval.count = (start, end) => {
+        interval.count = function(start, end) {
           t0.setTime(+start), t1.setTime(+end);
           floori(t0), floori(t1);
           return Math.floor(count(t0, t1));
         };
 
-        interval.every = (step) => {
+        interval.every = function(step) {
           step = Math.floor(step);
           return !isFinite(step) || !(step > 0) ? null
               : !(step > 1) ? interval
               : interval.filter(field
-                  ? (d) => field(d) % step === 0
-                  : (d) => interval.count(0, d) % step === 0);
+                  ? function(d) { return field(d) % step === 0; }
+                  : function(d) { return interval.count(0, d) % step === 0; });
         };
       }
 
       return interval;
     }
 
-    const millisecond = timeInterval(() => {
+    var millisecond = newInterval(function() {
       // noop
-    }, (date, step) => {
+    }, function(date, step) {
       date.setTime(+date + step);
-    }, (start, end) => {
+    }, function(start, end) {
       return end - start;
     });
 
     // An optimized implementation for this simple case.
-    millisecond.every = (k) => {
+    millisecond.every = function(k) {
       k = Math.floor(k);
       if (!isFinite(k) || !(k > 0)) return null;
       if (!(k > 1)) return millisecond;
-      return timeInterval((date) => {
+      return newInterval(function(date) {
         date.setTime(Math.floor(date / k) * k);
-      }, (date, step) => {
+      }, function(date, step) {
         date.setTime(+date + step * k);
-      }, (start, end) => {
+      }, function(start, end) {
         return (end - start) / k;
       });
     };
@@ -3522,183 +3575,173 @@ var app = (function () {
     const durationMonth = durationDay * 30;
     const durationYear = durationDay * 365;
 
-    const second = timeInterval((date) => {
+    var second = newInterval(function(date) {
       date.setTime(date - date.getMilliseconds());
-    }, (date, step) => {
+    }, function(date, step) {
       date.setTime(+date + step * durationSecond);
-    }, (start, end) => {
+    }, function(start, end) {
       return (end - start) / durationSecond;
-    }, (date) => {
+    }, function(date) {
       return date.getUTCSeconds();
     });
 
-    const timeMinute = timeInterval((date) => {
+    var minute = newInterval(function(date) {
       date.setTime(date - date.getMilliseconds() - date.getSeconds() * durationSecond);
-    }, (date, step) => {
+    }, function(date, step) {
       date.setTime(+date + step * durationMinute);
-    }, (start, end) => {
+    }, function(start, end) {
       return (end - start) / durationMinute;
-    }, (date) => {
+    }, function(date) {
       return date.getMinutes();
     });
 
-    const utcMinute = timeInterval((date) => {
-      date.setUTCSeconds(0, 0);
-    }, (date, step) => {
-      date.setTime(+date + step * durationMinute);
-    }, (start, end) => {
-      return (end - start) / durationMinute;
-    }, (date) => {
-      return date.getUTCMinutes();
-    });
-
-    const timeHour = timeInterval((date) => {
+    var hour = newInterval(function(date) {
       date.setTime(date - date.getMilliseconds() - date.getSeconds() * durationSecond - date.getMinutes() * durationMinute);
-    }, (date, step) => {
+    }, function(date, step) {
       date.setTime(+date + step * durationHour);
-    }, (start, end) => {
+    }, function(start, end) {
       return (end - start) / durationHour;
-    }, (date) => {
+    }, function(date) {
       return date.getHours();
     });
 
-    const utcHour = timeInterval((date) => {
-      date.setUTCMinutes(0, 0, 0);
-    }, (date, step) => {
-      date.setTime(+date + step * durationHour);
-    }, (start, end) => {
-      return (end - start) / durationHour;
-    }, (date) => {
-      return date.getUTCHours();
-    });
-
-    const timeDay = timeInterval(
+    var day = newInterval(
       date => date.setHours(0, 0, 0, 0),
       (date, step) => date.setDate(date.getDate() + step),
       (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationDay,
       date => date.getDate() - 1
     );
 
-    const utcDay = timeInterval((date) => {
-      date.setUTCHours(0, 0, 0, 0);
-    }, (date, step) => {
-      date.setUTCDate(date.getUTCDate() + step);
-    }, (start, end) => {
-      return (end - start) / durationDay;
-    }, (date) => {
-      return date.getUTCDate() - 1;
-    });
-
-    const unixDay = timeInterval((date) => {
-      date.setUTCHours(0, 0, 0, 0);
-    }, (date, step) => {
-      date.setUTCDate(date.getUTCDate() + step);
-    }, (start, end) => {
-      return (end - start) / durationDay;
-    }, (date) => {
-      return Math.floor(date / durationDay);
-    });
-
-    function timeWeekday(i) {
-      return timeInterval((date) => {
+    function weekday(i) {
+      return newInterval(function(date) {
         date.setDate(date.getDate() - (date.getDay() + 7 - i) % 7);
         date.setHours(0, 0, 0, 0);
-      }, (date, step) => {
+      }, function(date, step) {
         date.setDate(date.getDate() + step * 7);
-      }, (start, end) => {
+      }, function(start, end) {
         return (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationWeek;
       });
     }
 
-    const timeSunday = timeWeekday(0);
-    const timeMonday = timeWeekday(1);
-    const timeTuesday = timeWeekday(2);
-    const timeWednesday = timeWeekday(3);
-    const timeThursday = timeWeekday(4);
-    const timeFriday = timeWeekday(5);
-    const timeSaturday = timeWeekday(6);
+    var sunday = weekday(0);
+    var monday = weekday(1);
+    var tuesday = weekday(2);
+    var wednesday = weekday(3);
+    var thursday = weekday(4);
+    var friday = weekday(5);
+    var saturday = weekday(6);
 
-    function utcWeekday(i) {
-      return timeInterval((date) => {
-        date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 7 - i) % 7);
-        date.setUTCHours(0, 0, 0, 0);
-      }, (date, step) => {
-        date.setUTCDate(date.getUTCDate() + step * 7);
-      }, (start, end) => {
-        return (end - start) / durationWeek;
-      });
-    }
-
-    const utcSunday = utcWeekday(0);
-    const utcMonday = utcWeekday(1);
-    const utcTuesday = utcWeekday(2);
-    const utcWednesday = utcWeekday(3);
-    const utcThursday = utcWeekday(4);
-    const utcFriday = utcWeekday(5);
-    const utcSaturday = utcWeekday(6);
-
-    const timeMonth = timeInterval((date) => {
+    var month = newInterval(function(date) {
       date.setDate(1);
       date.setHours(0, 0, 0, 0);
-    }, (date, step) => {
+    }, function(date, step) {
       date.setMonth(date.getMonth() + step);
-    }, (start, end) => {
+    }, function(start, end) {
       return end.getMonth() - start.getMonth() + (end.getFullYear() - start.getFullYear()) * 12;
-    }, (date) => {
+    }, function(date) {
       return date.getMonth();
     });
 
-    const utcMonth = timeInterval((date) => {
-      date.setUTCDate(1);
-      date.setUTCHours(0, 0, 0, 0);
-    }, (date, step) => {
-      date.setUTCMonth(date.getUTCMonth() + step);
-    }, (start, end) => {
-      return end.getUTCMonth() - start.getUTCMonth() + (end.getUTCFullYear() - start.getUTCFullYear()) * 12;
-    }, (date) => {
-      return date.getUTCMonth();
-    });
-
-    const timeYear = timeInterval((date) => {
+    var year = newInterval(function(date) {
       date.setMonth(0, 1);
       date.setHours(0, 0, 0, 0);
-    }, (date, step) => {
+    }, function(date, step) {
       date.setFullYear(date.getFullYear() + step);
-    }, (start, end) => {
+    }, function(start, end) {
       return end.getFullYear() - start.getFullYear();
-    }, (date) => {
+    }, function(date) {
       return date.getFullYear();
     });
 
     // An optimized implementation for this simple case.
-    timeYear.every = (k) => {
-      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : timeInterval((date) => {
+    year.every = function(k) {
+      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval(function(date) {
         date.setFullYear(Math.floor(date.getFullYear() / k) * k);
         date.setMonth(0, 1);
         date.setHours(0, 0, 0, 0);
-      }, (date, step) => {
+      }, function(date, step) {
         date.setFullYear(date.getFullYear() + step * k);
       });
     };
 
-    const utcYear = timeInterval((date) => {
+    var utcMinute = newInterval(function(date) {
+      date.setUTCSeconds(0, 0);
+    }, function(date, step) {
+      date.setTime(+date + step * durationMinute);
+    }, function(start, end) {
+      return (end - start) / durationMinute;
+    }, function(date) {
+      return date.getUTCMinutes();
+    });
+
+    var utcHour = newInterval(function(date) {
+      date.setUTCMinutes(0, 0, 0);
+    }, function(date, step) {
+      date.setTime(+date + step * durationHour);
+    }, function(start, end) {
+      return (end - start) / durationHour;
+    }, function(date) {
+      return date.getUTCHours();
+    });
+
+    var utcDay = newInterval(function(date) {
+      date.setUTCHours(0, 0, 0, 0);
+    }, function(date, step) {
+      date.setUTCDate(date.getUTCDate() + step);
+    }, function(start, end) {
+      return (end - start) / durationDay;
+    }, function(date) {
+      return date.getUTCDate() - 1;
+    });
+
+    function utcWeekday(i) {
+      return newInterval(function(date) {
+        date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 7 - i) % 7);
+        date.setUTCHours(0, 0, 0, 0);
+      }, function(date, step) {
+        date.setUTCDate(date.getUTCDate() + step * 7);
+      }, function(start, end) {
+        return (end - start) / durationWeek;
+      });
+    }
+
+    var utcSunday = utcWeekday(0);
+    var utcMonday = utcWeekday(1);
+    var utcTuesday = utcWeekday(2);
+    var utcWednesday = utcWeekday(3);
+    var utcThursday = utcWeekday(4);
+    var utcFriday = utcWeekday(5);
+    var utcSaturday = utcWeekday(6);
+
+    var utcMonth = newInterval(function(date) {
+      date.setUTCDate(1);
+      date.setUTCHours(0, 0, 0, 0);
+    }, function(date, step) {
+      date.setUTCMonth(date.getUTCMonth() + step);
+    }, function(start, end) {
+      return end.getUTCMonth() - start.getUTCMonth() + (end.getUTCFullYear() - start.getUTCFullYear()) * 12;
+    }, function(date) {
+      return date.getUTCMonth();
+    });
+
+    var utcYear = newInterval(function(date) {
       date.setUTCMonth(0, 1);
       date.setUTCHours(0, 0, 0, 0);
-    }, (date, step) => {
+    }, function(date, step) {
       date.setUTCFullYear(date.getUTCFullYear() + step);
-    }, (start, end) => {
+    }, function(start, end) {
       return end.getUTCFullYear() - start.getUTCFullYear();
-    }, (date) => {
+    }, function(date) {
       return date.getUTCFullYear();
     });
 
     // An optimized implementation for this simple case.
-    utcYear.every = (k) => {
-      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : timeInterval((date) => {
+    utcYear.every = function(k) {
+      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval(function(date) {
         date.setUTCFullYear(Math.floor(date.getUTCFullYear() / k) * k);
         date.setUTCMonth(0, 1);
         date.setUTCHours(0, 0, 0, 0);
-      }, (date, step) => {
+      }, function(date, step) {
         date.setUTCFullYear(date.getUTCFullYear() + step * k);
       });
     };
@@ -3746,8 +3789,184 @@ var app = (function () {
       return [ticks, tickInterval];
     }
 
-    const [utcTicks, utcTickInterval] = ticker(utcYear, utcMonth, utcSunday, unixDay, utcHour, utcMinute);
-    const [timeTicks, timeTickInterval] = ticker(timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute);
+    const [utcTicks, utcTickInterval] = ticker(utcYear, utcMonth, utcSunday, utcDay, utcHour, utcMinute);
+    const [timeTicks, timeTickInterval] = ticker(year, month, sunday, day, hour, minute);
+
+    var t0$1 = new Date,
+        t1$1 = new Date;
+
+    function newInterval$1(floori, offseti, count, field) {
+
+      function interval(date) {
+        return floori(date = arguments.length === 0 ? new Date : new Date(+date)), date;
+      }
+
+      interval.floor = function(date) {
+        return floori(date = new Date(+date)), date;
+      };
+
+      interval.ceil = function(date) {
+        return floori(date = new Date(date - 1)), offseti(date, 1), floori(date), date;
+      };
+
+      interval.round = function(date) {
+        var d0 = interval(date),
+            d1 = interval.ceil(date);
+        return date - d0 < d1 - date ? d0 : d1;
+      };
+
+      interval.offset = function(date, step) {
+        return offseti(date = new Date(+date), step == null ? 1 : Math.floor(step)), date;
+      };
+
+      interval.range = function(start, stop, step) {
+        var range = [], previous;
+        start = interval.ceil(start);
+        step = step == null ? 1 : Math.floor(step);
+        if (!(start < stop) || !(step > 0)) return range; // also handles Invalid Date
+        do range.push(previous = new Date(+start)), offseti(start, step), floori(start);
+        while (previous < start && start < stop);
+        return range;
+      };
+
+      interval.filter = function(test) {
+        return newInterval$1(function(date) {
+          if (date >= date) while (floori(date), !test(date)) date.setTime(date - 1);
+        }, function(date, step) {
+          if (date >= date) {
+            if (step < 0) while (++step <= 0) {
+              while (offseti(date, -1), !test(date)) {} // eslint-disable-line no-empty
+            } else while (--step >= 0) {
+              while (offseti(date, +1), !test(date)) {} // eslint-disable-line no-empty
+            }
+          }
+        });
+      };
+
+      if (count) {
+        interval.count = function(start, end) {
+          t0$1.setTime(+start), t1$1.setTime(+end);
+          floori(t0$1), floori(t1$1);
+          return Math.floor(count(t0$1, t1$1));
+        };
+
+        interval.every = function(step) {
+          step = Math.floor(step);
+          return !isFinite(step) || !(step > 0) ? null
+              : !(step > 1) ? interval
+              : interval.filter(field
+                  ? function(d) { return field(d) % step === 0; }
+                  : function(d) { return interval.count(0, d) % step === 0; });
+        };
+      }
+
+      return interval;
+    }
+
+    const durationSecond$1 = 1000;
+    const durationMinute$1 = durationSecond$1 * 60;
+    const durationHour$1 = durationMinute$1 * 60;
+    const durationDay$1 = durationHour$1 * 24;
+    const durationWeek$1 = durationDay$1 * 7;
+
+    var day$1 = newInterval$1(
+      date => date.setHours(0, 0, 0, 0),
+      (date, step) => date.setDate(date.getDate() + step),
+      (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute$1) / durationDay$1,
+      date => date.getDate() - 1
+    );
+
+    function weekday$1(i) {
+      return newInterval$1(function(date) {
+        date.setDate(date.getDate() - (date.getDay() + 7 - i) % 7);
+        date.setHours(0, 0, 0, 0);
+      }, function(date, step) {
+        date.setDate(date.getDate() + step * 7);
+      }, function(start, end) {
+        return (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute$1) / durationWeek$1;
+      });
+    }
+
+    var sunday$1 = weekday$1(0);
+    var monday$1 = weekday$1(1);
+    var tuesday$1 = weekday$1(2);
+    var wednesday$1 = weekday$1(3);
+    var thursday$1 = weekday$1(4);
+    var friday$1 = weekday$1(5);
+    var saturday$1 = weekday$1(6);
+
+    var year$1 = newInterval$1(function(date) {
+      date.setMonth(0, 1);
+      date.setHours(0, 0, 0, 0);
+    }, function(date, step) {
+      date.setFullYear(date.getFullYear() + step);
+    }, function(start, end) {
+      return end.getFullYear() - start.getFullYear();
+    }, function(date) {
+      return date.getFullYear();
+    });
+
+    // An optimized implementation for this simple case.
+    year$1.every = function(k) {
+      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval$1(function(date) {
+        date.setFullYear(Math.floor(date.getFullYear() / k) * k);
+        date.setMonth(0, 1);
+        date.setHours(0, 0, 0, 0);
+      }, function(date, step) {
+        date.setFullYear(date.getFullYear() + step * k);
+      });
+    };
+
+    var utcDay$1 = newInterval$1(function(date) {
+      date.setUTCHours(0, 0, 0, 0);
+    }, function(date, step) {
+      date.setUTCDate(date.getUTCDate() + step);
+    }, function(start, end) {
+      return (end - start) / durationDay$1;
+    }, function(date) {
+      return date.getUTCDate() - 1;
+    });
+
+    function utcWeekday$1(i) {
+      return newInterval$1(function(date) {
+        date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 7 - i) % 7);
+        date.setUTCHours(0, 0, 0, 0);
+      }, function(date, step) {
+        date.setUTCDate(date.getUTCDate() + step * 7);
+      }, function(start, end) {
+        return (end - start) / durationWeek$1;
+      });
+    }
+
+    var utcSunday$1 = utcWeekday$1(0);
+    var utcMonday$1 = utcWeekday$1(1);
+    var utcTuesday$1 = utcWeekday$1(2);
+    var utcWednesday$1 = utcWeekday$1(3);
+    var utcThursday$1 = utcWeekday$1(4);
+    var utcFriday$1 = utcWeekday$1(5);
+    var utcSaturday$1 = utcWeekday$1(6);
+
+    var utcYear$1 = newInterval$1(function(date) {
+      date.setUTCMonth(0, 1);
+      date.setUTCHours(0, 0, 0, 0);
+    }, function(date, step) {
+      date.setUTCFullYear(date.getUTCFullYear() + step);
+    }, function(start, end) {
+      return end.getUTCFullYear() - start.getUTCFullYear();
+    }, function(date) {
+      return date.getUTCFullYear();
+    });
+
+    // An optimized implementation for this simple case.
+    utcYear$1.every = function(k) {
+      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval$1(function(date) {
+        date.setUTCFullYear(Math.floor(date.getUTCFullYear() / k) * k);
+        date.setUTCMonth(0, 1);
+        date.setUTCHours(0, 0, 0, 0);
+      }, function(date, step) {
+        date.setUTCFullYear(date.getUTCFullYear() + step * k);
+      });
+    };
 
     function localDate(d) {
       if (0 <= d.y && d.y < 100) {
@@ -3959,15 +4178,15 @@ var app = (function () {
             if (!("w" in d)) d.w = 1;
             if ("Z" in d) {
               week = utcDate(newDate(d.y, 0, 1)), day = week.getUTCDay();
-              week = day > 4 || day === 0 ? utcMonday.ceil(week) : utcMonday(week);
-              week = utcDay.offset(week, (d.V - 1) * 7);
+              week = day > 4 || day === 0 ? utcMonday$1.ceil(week) : utcMonday$1(week);
+              week = utcDay$1.offset(week, (d.V - 1) * 7);
               d.y = week.getUTCFullYear();
               d.m = week.getUTCMonth();
               d.d = week.getUTCDate() + (d.w + 6) % 7;
             } else {
               week = localDate(newDate(d.y, 0, 1)), day = week.getDay();
-              week = day > 4 || day === 0 ? timeMonday.ceil(week) : timeMonday(week);
-              week = timeDay.offset(week, (d.V - 1) * 7);
+              week = day > 4 || day === 0 ? monday$1.ceil(week) : monday$1(week);
+              week = day$1.offset(week, (d.V - 1) * 7);
               d.y = week.getFullYear();
               d.m = week.getMonth();
               d.d = week.getDate() + (d.w + 6) % 7;
@@ -4260,7 +4479,7 @@ var app = (function () {
     }
 
     function formatDayOfYear(d, p) {
-      return pad(1 + timeDay.count(timeYear(d), d), p, 3);
+      return pad(1 + day$1.count(year$1(d), d), p, 3);
     }
 
     function formatMilliseconds(d, p) {
@@ -4289,17 +4508,17 @@ var app = (function () {
     }
 
     function formatWeekNumberSunday(d, p) {
-      return pad(timeSunday.count(timeYear(d) - 1, d), p, 2);
+      return pad(sunday$1.count(year$1(d) - 1, d), p, 2);
     }
 
     function dISO(d) {
       var day = d.getDay();
-      return (day >= 4 || day === 0) ? timeThursday(d) : timeThursday.ceil(d);
+      return (day >= 4 || day === 0) ? thursday$1(d) : thursday$1.ceil(d);
     }
 
     function formatWeekNumberISO(d, p) {
       d = dISO(d);
-      return pad(timeThursday.count(timeYear(d), d) + (timeYear(d).getDay() === 4), p, 2);
+      return pad(thursday$1.count(year$1(d), d) + (year$1(d).getDay() === 4), p, 2);
     }
 
     function formatWeekdayNumberSunday(d) {
@@ -4307,7 +4526,7 @@ var app = (function () {
     }
 
     function formatWeekNumberMonday(d, p) {
-      return pad(timeMonday.count(timeYear(d) - 1, d), p, 2);
+      return pad(monday$1.count(year$1(d) - 1, d), p, 2);
     }
 
     function formatYear(d, p) {
@@ -4325,7 +4544,7 @@ var app = (function () {
 
     function formatFullYearISO(d, p) {
       var day = d.getDay();
-      d = (day >= 4 || day === 0) ? timeThursday(d) : timeThursday.ceil(d);
+      d = (day >= 4 || day === 0) ? thursday$1(d) : thursday$1.ceil(d);
       return pad(d.getFullYear() % 10000, p, 4);
     }
 
@@ -4349,7 +4568,7 @@ var app = (function () {
     }
 
     function formatUTCDayOfYear(d, p) {
-      return pad(1 + utcDay.count(utcYear(d), d), p, 3);
+      return pad(1 + utcDay$1.count(utcYear$1(d), d), p, 3);
     }
 
     function formatUTCMilliseconds(d, p) {
@@ -4378,17 +4597,17 @@ var app = (function () {
     }
 
     function formatUTCWeekNumberSunday(d, p) {
-      return pad(utcSunday.count(utcYear(d) - 1, d), p, 2);
+      return pad(utcSunday$1.count(utcYear$1(d) - 1, d), p, 2);
     }
 
     function UTCdISO(d) {
       var day = d.getUTCDay();
-      return (day >= 4 || day === 0) ? utcThursday(d) : utcThursday.ceil(d);
+      return (day >= 4 || day === 0) ? utcThursday$1(d) : utcThursday$1.ceil(d);
     }
 
     function formatUTCWeekNumberISO(d, p) {
       d = UTCdISO(d);
-      return pad(utcThursday.count(utcYear(d), d) + (utcYear(d).getUTCDay() === 4), p, 2);
+      return pad(utcThursday$1.count(utcYear$1(d), d) + (utcYear$1(d).getUTCDay() === 4), p, 2);
     }
 
     function formatUTCWeekdayNumberSunday(d) {
@@ -4396,7 +4615,7 @@ var app = (function () {
     }
 
     function formatUTCWeekNumberMonday(d, p) {
-      return pad(utcMonday.count(utcYear(d) - 1, d), p, 2);
+      return pad(utcMonday$1.count(utcYear$1(d) - 1, d), p, 2);
     }
 
     function formatUTCYear(d, p) {
@@ -4414,7 +4633,7 @@ var app = (function () {
 
     function formatUTCFullYearISO(d, p) {
       var day = d.getUTCDay();
-      d = (day >= 4 || day === 0) ? utcThursday(d) : utcThursday.ceil(d);
+      d = (day >= 4 || day === 0) ? utcThursday$1(d) : utcThursday$1.ceil(d);
       return pad(d.getUTCFullYear() % 10000, p, 4);
     }
 
@@ -4523,7 +4742,7 @@ var app = (function () {
     }
 
     function time() {
-      return initRange.apply(calendar(timeTicks, timeTickInterval, timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute, second, timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
+      return initRange.apply(calendar(timeTicks, timeTickInterval, year, month, sunday, day, hour, minute, second, timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
     }
 
     function utcTime() {
@@ -7025,11 +7244,11 @@ var app = (function () {
     const msDay = 864e5;
     const msWeek = 6048e5;
 
-    const t0$1 = new Date();
-    const t1$1 = new Date();
+    const t0$2 = new Date();
+    const t1$2 = new Date();
     const t = d => (
-      t0$1.setTime(typeof d === 'string' ? parseIsoDate(d) : d),
-      t0$1
+      t0$2.setTime(typeof d === 'string' ? parseIsoDate(d) : d),
+      t0$2
     );
 
     /**
@@ -7085,47 +7304,47 @@ var app = (function () {
     }
 
     function dayofyear(date) {
-      t1$1.setTime(+date);
-      t1$1.setHours(0, 0, 0, 0);
-      t0$1.setTime(+t1$1);
-      t0$1.setMonth(0);
-      t0$1.setDate(1);
-      const tz = (t1$1.getTimezoneOffset() - t0$1.getTimezoneOffset()) * msMinute;
-      return Math.floor(1 + ((t1$1 - t0$1) - tz) / msDay);
+      t1$2.setTime(+date);
+      t1$2.setHours(0, 0, 0, 0);
+      t0$2.setTime(+t1$2);
+      t0$2.setMonth(0);
+      t0$2.setDate(1);
+      const tz = (t1$2.getTimezoneOffset() - t0$2.getTimezoneOffset()) * msMinute;
+      return Math.floor(1 + ((t1$2 - t0$2) - tz) / msDay);
     }
 
     function utcdayofyear(date) {
-      t1$1.setTime(+date);
-      t1$1.setUTCHours(0, 0, 0, 0);
-      const t0 = Date.UTC(t1$1.getUTCFullYear(), 0, 1);
-      return Math.floor(1 + (t1$1 - t0) / msDay);
+      t1$2.setTime(+date);
+      t1$2.setUTCHours(0, 0, 0, 0);
+      const t0 = Date.UTC(t1$2.getUTCFullYear(), 0, 1);
+      return Math.floor(1 + (t1$2 - t0) / msDay);
     }
 
     function week(date, firstday) {
       const i = firstday || 0;
-      t1$1.setTime(+date);
-      t1$1.setDate(t1$1.getDate() - (t1$1.getDay() + 7 - i) % 7);
-      t1$1.setHours(0, 0, 0, 0);
-      t0$1.setTime(+date);
-      t0$1.setMonth(0);
-      t0$1.setDate(1);
-      t0$1.setDate(1 - (t0$1.getDay() + 7 - i) % 7);
-      t0$1.setHours(0, 0, 0, 0);
-      const tz = (t1$1.getTimezoneOffset() - t0$1.getTimezoneOffset()) * msMinute;
-      return Math.floor((1 + (t1$1 - t0$1) - tz) / msWeek);
+      t1$2.setTime(+date);
+      t1$2.setDate(t1$2.getDate() - (t1$2.getDay() + 7 - i) % 7);
+      t1$2.setHours(0, 0, 0, 0);
+      t0$2.setTime(+date);
+      t0$2.setMonth(0);
+      t0$2.setDate(1);
+      t0$2.setDate(1 - (t0$2.getDay() + 7 - i) % 7);
+      t0$2.setHours(0, 0, 0, 0);
+      const tz = (t1$2.getTimezoneOffset() - t0$2.getTimezoneOffset()) * msMinute;
+      return Math.floor((1 + (t1$2 - t0$2) - tz) / msWeek);
     }
 
     function utcweek(date, firstday) {
       const i = firstday || 0;
-      t1$1.setTime(+date);
-      t1$1.setUTCDate(t1$1.getUTCDate() - (t1$1.getUTCDay() + 7 - i) % 7);
-      t1$1.setUTCHours(0, 0, 0, 0);
-      t0$1.setTime(+date);
-      t0$1.setUTCMonth(0);
-      t0$1.setUTCDate(1);
-      t0$1.setUTCDate(1 - (t0$1.getUTCDay() + 7 - i) % 7);
-      t0$1.setUTCHours(0, 0, 0, 0);
-      return Math.floor((1 + (t1$1 - t0$1)) / msWeek);
+      t1$2.setTime(+date);
+      t1$2.setUTCDate(t1$2.getUTCDate() - (t1$2.getUTCDay() + 7 - i) % 7);
+      t1$2.setUTCHours(0, 0, 0, 0);
+      t0$2.setTime(+date);
+      t0$2.setUTCMonth(0);
+      t0$2.setUTCDate(1);
+      t0$2.setUTCDate(1 - (t0$2.getUTCDay() + 7 - i) % 7);
+      t0$2.setUTCHours(0, 0, 0, 0);
+      return Math.floor((1 + (t1$2 - t0$2)) / msWeek);
     }
 
     var date$2 = {
@@ -34581,18 +34800,1528 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	}
     }
 
-    /* src\App.svelte generated by Svelte v3.31.0 */
+    var trendData = [
+    	{
+    		yr: 1950,
+    		cont: "Africa",
+    		coalprod: "8.23e-3",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "3.63e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "0.00e+0",
+    		gdp: "3.28e-3",
+    		sharehh: "6.97e-1",
+    		tradeopen: "3.96e-1"
+    	},
+    	{
+    		yr: 1955,
+    		cont: "Africa",
+    		coalprod: "3.84e-3",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "2.38e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "0.00e+0",
+    		gdp: "8.13e-3",
+    		sharehh: "6.59e-1",
+    		tradeopen: "4.16e-1"
+    	},
+    	{
+    		yr: 1960,
+    		cont: "Africa",
+    		coalprod: "2.90e-2",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "8.45e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "0.00e+0",
+    		gdp: "2.58e-2",
+    		sharehh: "5.26e-1",
+    		tradeopen: "2.35e-1"
+    	},
+    	{
+    		yr: 1965,
+    		cont: "Africa",
+    		coalprod: "7.21e-2",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.14e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "0.00e+0",
+    		gdp: "5.52e-2",
+    		sharehh: "4.33e-1",
+    		tradeopen: "2.42e-1"
+    	},
+    	{
+    		yr: 1970,
+    		cont: "Africa",
+    		coalprod: "5.15e-2",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "4.87e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "0.00e+0",
+    		gdp: "1.12e-1",
+    		sharehh: "4.20e-1",
+    		tradeopen: "2.72e-1"
+    	},
+    	{
+    		yr: 1975,
+    		cont: "Africa",
+    		coalprod: "2.00e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "2.00e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "0.00e+0",
+    		gdp: "1.56e-1",
+    		sharehh: "2.76e-1",
+    		tradeopen: "4.29e-1"
+    	},
+    	{
+    		yr: 1980,
+    		cont: "Africa",
+    		coalprod: "7.23e-2",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "6.91e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "9.10e-1",
+    		gdp: "1.83e-1",
+    		sharehh: "3.25e-1",
+    		tradeopen: "3.37e-1"
+    	},
+    	{
+    		yr: 1985,
+    		cont: "Africa",
+    		coalprod: "2.09e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.33e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "7.88e-1",
+    		gdp: "2.28e-1",
+    		sharehh: "3.62e-1",
+    		tradeopen: "2.36e-1"
+    	},
+    	{
+    		yr: 1990,
+    		cont: "Africa",
+    		coalprod: "2.43e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "9.51e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "7.47e-1",
+    		gdp: "2.39e-1",
+    		sharehh: "5.05e-1",
+    		tradeopen: "3.88e-1"
+    	},
+    	{
+    		yr: 1995,
+    		cont: "Africa",
+    		coalprod: "1.59e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.62e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "8.94e-1",
+    		gdp: "2.19e-1",
+    		sharehh: "6.69e-1",
+    		tradeopen: "4.52e-1"
+    	},
+    	{
+    		yr: 2000,
+    		cont: "Africa",
+    		coalprod: "2.47e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.06e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "8.05e-1",
+    		gdp: "2.99e-1",
+    		sharehh: "5.99e-1",
+    		tradeopen: "3.93e-1"
+    	},
+    	{
+    		yr: 2005,
+    		cont: "Africa",
+    		coalprod: "1.12e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "6.15e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "8.93e-1",
+    		gdp: "5.03e-1",
+    		sharehh: "3.97e-1",
+    		tradeopen: "5.54e-1"
+    	},
+    	{
+    		yr: 2010,
+    		cont: "Africa",
+    		coalprod: "4.02e-2",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.10e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "5.64e-1",
+    		gdp: "7.73e-1",
+    		sharehh: "6.35e-1",
+    		tradeopen: "6.01e-1"
+    	},
+    	{
+    		yr: 2015,
+    		cont: "Africa",
+    		coalprod: "1.13e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "3.17e-2",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "6.15e-1",
+    		gdp: "9.53e-1",
+    		sharehh: "6.97e-1",
+    		tradeopen: "6.41e-1"
+    	},
+    	{
+    		yr: 1955,
+    		cont: "Americas",
+    		coalprod: "1.75e-1",
+    		gasprod: "3.03e-2",
+    		oilprod: "1.01e-1",
+    		coalprodpc: "2.56e-1",
+    		gasprodpc: "1.96e-1",
+    		oilprodpc: "8.45e-2",
+    		gini: "2.00e-1",
+    		gdp: "1.82e-2",
+    		sharehh: "7.45e-1",
+    		tradeopen: "1.89e-1"
+    	},
+    	{
+    		yr: 1960,
+    		cont: "Americas",
+    		coalprod: "2.01e-1",
+    		gasprod: "6.72e-2",
+    		oilprod: "1.75e-1",
+    		coalprodpc: "2.33e-1",
+    		gasprodpc: "3.89e-1",
+    		oilprodpc: "1.39e-1",
+    		gini: "2.11e-1",
+    		gdp: "3.17e-2",
+    		sharehh: "6.62e-1",
+    		tradeopen: "2.59e-1"
+    	},
+    	{
+    		yr: 1965,
+    		cont: "Americas",
+    		coalprod: "2.59e-1",
+    		gasprod: "1.32e-1",
+    		oilprod: "2.56e-1",
+    		coalprodpc: "2.60e-1",
+    		gasprodpc: "4.92e-1",
+    		oilprodpc: "2.98e-1",
+    		gini: "1.68e-1",
+    		gdp: "5.87e-2",
+    		sharehh: "6.80e-1",
+    		tradeopen: "7.11e-2"
+    	},
+    	{
+    		yr: 1970,
+    		cont: "Americas",
+    		coalprod: "3.63e-1",
+    		gasprod: "1.70e-1",
+    		oilprod: "3.20e-1",
+    		coalprodpc: "3.29e-1",
+    		gasprodpc: "4.80e-1",
+    		oilprodpc: "3.25e-1",
+    		gini: "6.31e-2",
+    		gdp: "9.49e-2",
+    		sharehh: "6.03e-1",
+    		tradeopen: "1.30e-1"
+    	},
+    	{
+    		yr: 1975,
+    		cont: "Americas",
+    		coalprod: "4.13e-1",
+    		gasprod: "2.08e-1",
+    		oilprod: "3.39e-1",
+    		coalprodpc: "3.73e-1",
+    		gasprodpc: "4.12e-1",
+    		oilprodpc: "3.62e-1",
+    		gini: "1.16e-1",
+    		gdp: "1.66e-1",
+    		sharehh: "4.68e-1",
+    		tradeopen: "3.61e-1"
+    	},
+    	{
+    		yr: 1980,
+    		cont: "Americas",
+    		coalprod: "2.60e-1",
+    		gasprod: "3.02e-1",
+    		oilprod: "5.69e-1",
+    		coalprodpc: "2.73e-1",
+    		gasprodpc: "7.43e-1",
+    		oilprodpc: "4.33e-1",
+    		gini: "1.31e-1",
+    		gdp: "2.23e-1",
+    		sharehh: "4.52e-1",
+    		tradeopen: "4.10e-1"
+    	},
+    	{
+    		yr: 1985,
+    		cont: "Americas",
+    		coalprod: "4.25e-1",
+    		gasprod: "2.90e-1",
+    		oilprod: "6.06e-1",
+    		coalprodpc: "4.24e-1",
+    		gasprodpc: "7.31e-1",
+    		oilprodpc: "4.13e-1",
+    		gini: "2.08e-1",
+    		gdp: "2.42e-1",
+    		sharehh: "3.07e-1",
+    		tradeopen: "3.80e-1"
+    	},
+    	{
+    		yr: 1990,
+    		cont: "Americas",
+    		coalprod: "3.61e-1",
+    		gasprod: "4.03e-1",
+    		oilprod: "5.61e-1",
+    		coalprodpc: "3.05e-1",
+    		gasprodpc: "5.66e-1",
+    		oilprodpc: "4.42e-1",
+    		gini: "2.19e-1",
+    		gdp: "2.93e-1",
+    		sharehh: "4.95e-1",
+    		tradeopen: "3.02e-1"
+    	},
+    	{
+    		yr: 1995,
+    		cont: "Americas",
+    		coalprod: "3.44e-1",
+    		gasprod: "4.82e-1",
+    		oilprod: "5.45e-1",
+    		coalprodpc: "3.33e-1",
+    		gasprodpc: "5.47e-1",
+    		oilprodpc: "5.08e-1",
+    		gini: "3.49e-1",
+    		gdp: "4.18e-1",
+    		sharehh: "3.46e-1",
+    		tradeopen: "5.09e-1"
+    	},
+    	{
+    		yr: 2000,
+    		cont: "Americas",
+    		coalprod: "3.91e-1",
+    		gasprod: "4.93e-1",
+    		oilprod: "4.88e-1",
+    		coalprodpc: "3.22e-1",
+    		gasprodpc: "5.47e-1",
+    		oilprodpc: "5.49e-1",
+    		gini: "4.93e-1",
+    		gdp: "4.90e-1",
+    		sharehh: "3.03e-1",
+    		tradeopen: "6.44e-1"
+    	},
+    	{
+    		yr: 2005,
+    		cont: "Americas",
+    		coalprod: "5.13e-1",
+    		gasprod: "5.04e-1",
+    		oilprod: "5.31e-1",
+    		coalprodpc: "3.12e-1",
+    		gasprodpc: "5.99e-1",
+    		oilprodpc: "5.30e-1",
+    		gini: "4.73e-1",
+    		gdp: "5.29e-1",
+    		sharehh: "2.95e-1",
+    		tradeopen: "8.09e-1"
+    	},
+    	{
+    		yr: 2010,
+    		cont: "Americas",
+    		coalprod: "5.92e-1",
+    		gasprod: "7.17e-1",
+    		oilprod: "7.04e-1",
+    		coalprodpc: "2.72e-1",
+    		gasprodpc: "6.34e-1",
+    		oilprodpc: "6.75e-1",
+    		gini: "6.70e-1",
+    		gdp: "7.82e-1",
+    		sharehh: "1.54e-1",
+    		tradeopen: "7.70e-1"
+    	},
+    	{
+    		yr: 2015,
+    		cont: "Americas",
+    		coalprod: "7.13e-1",
+    		gasprod: "8.76e-1",
+    		oilprod: "7.19e-1",
+    		coalprodpc: "2.51e-1",
+    		gasprodpc: "6.26e-1",
+    		oilprodpc: "8.05e-1",
+    		gini: "4.42e-1",
+    		gdp: "9.11e-1",
+    		sharehh: "1.89e-1",
+    		tradeopen: "7.58e-1"
+    	},
+    	{
+    		yr: 1955,
+    		cont: "Asia",
+    		coalprod: "2.54e-2",
+    		gasprod: "6.83e-4",
+    		oilprod: "3.70e-2",
+    		coalprodpc: "6.94e-2",
+    		gasprodpc: "6.93e-2",
+    		oilprodpc: "1.61e-3",
+    		gini: "4.06e-1",
+    		gdp: "4.48e-3",
+    		sharehh: "9.01e-1",
+    		tradeopen: "9.16e-2"
+    	},
+    	{
+    		yr: 1960,
+    		cont: "Asia",
+    		coalprod: "6.36e-2",
+    		gasprod: "3.41e-3",
+    		oilprod: "6.99e-2",
+    		coalprodpc: "1.70e-1",
+    		gasprodpc: "1.28e-1",
+    		oilprodpc: "9.33e-3",
+    		gini: "3.89e-1",
+    		gdp: "9.71e-3",
+    		sharehh: "7.23e-1",
+    		tradeopen: "9.50e-2"
+    	},
+    	{
+    		yr: 1965,
+    		cont: "Asia",
+    		coalprod: "7.73e-2",
+    		gasprod: "9.80e-3",
+    		oilprod: "2.86e-1",
+    		coalprodpc: "1.52e-1",
+    		gasprodpc: "3.42e-1",
+    		oilprodpc: "2.42e-2",
+    		gini: "3.75e-1",
+    		gdp: "2.24e-2",
+    		sharehh: "6.99e-1",
+    		tradeopen: "1.38e-1"
+    	},
+    	{
+    		yr: 1970,
+    		cont: "Asia",
+    		coalprod: "7.33e-2",
+    		gasprod: "1.47e-2",
+    		oilprod: "4.49e-1",
+    		coalprodpc: "1.42e-1",
+    		gasprodpc: "3.69e-1",
+    		oilprodpc: "3.10e-2",
+    		gini: "3.81e-1",
+    		gdp: "3.66e-2",
+    		sharehh: "5.87e-1",
+    		tradeopen: "9.18e-2"
+    	},
+    	{
+    		yr: 1975,
+    		cont: "Asia",
+    		coalprod: "1.22e-1",
+    		gasprod: "4.60e-2",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.86e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "7.14e-2",
+    		gini: "3.67e-1",
+    		gdp: "6.35e-2",
+    		sharehh: "4.23e-1",
+    		tradeopen: "1.21e-1"
+    	},
+    	{
+    		yr: 1980,
+    		cont: "Asia",
+    		coalprod: "1.33e-1",
+    		gasprod: "1.19e-1",
+    		oilprod: "4.97e-1",
+    		coalprodpc: "2.17e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "2.30e-1",
+    		gini: "7.02e-1",
+    		gdp: "7.66e-2",
+    		sharehh: "4.92e-1",
+    		tradeopen: "2.91e-1"
+    	},
+    	{
+    		yr: 1985,
+    		cont: "Asia",
+    		coalprod: "2.28e-1",
+    		gasprod: "9.69e-2",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "2.53e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "2.72e-1",
+    		gini: "2.78e-1",
+    		gdp: "9.94e-2",
+    		sharehh: "3.74e-1",
+    		tradeopen: "2.13e-1"
+    	},
+    	{
+    		yr: 1990,
+    		cont: "Asia",
+    		coalprod: "1.25e-1",
+    		gasprod: "2.44e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.85e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "4.66e-1",
+    		gini: "6.25e-1",
+    		gdp: "1.91e-1",
+    		sharehh: "4.10e-1",
+    		tradeopen: "3.35e-1"
+    	},
+    	{
+    		yr: 1995,
+    		cont: "Asia",
+    		coalprod: "1.55e-1",
+    		gasprod: "3.66e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.63e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "4.46e-1",
+    		gini: "8.07e-1",
+    		gdp: "2.23e-1",
+    		sharehh: "3.14e-1",
+    		tradeopen: "4.99e-1"
+    	},
+    	{
+    		yr: 2000,
+    		cont: "Asia",
+    		coalprod: "1.38e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.45e-1",
+    		coalprodpc: "1.54e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "6.68e-1",
+    		gdp: "2.60e-1",
+    		sharehh: "3.96e-1",
+    		tradeopen: "6.11e-1"
+    	},
+    	{
+    		yr: 2005,
+    		cont: "Asia",
+    		coalprod: "2.64e-1",
+    		gasprod: "5.07e-1",
+    		oilprod: "6.33e-1",
+    		coalprodpc: "3.05e-1",
+    		gasprodpc: "5.91e-1",
+    		oilprodpc: "5.92e-1",
+    		gini: "8.13e-1",
+    		gdp: "4.06e-1",
+    		sharehh: "4.65e-1",
+    		tradeopen: "7.13e-1"
+    	},
+    	{
+    		yr: 2010,
+    		cont: "Asia",
+    		coalprod: "5.37e-1",
+    		gasprod: "6.53e-1",
+    		oilprod: "6.04e-1",
+    		coalprodpc: "5.22e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "6.57e-1",
+    		gini: "7.32e-1",
+    		gdp: "6.61e-1",
+    		sharehh: "4.05e-1",
+    		tradeopen: "6.35e-1"
+    	},
+    	{
+    		yr: 2015,
+    		cont: "Asia",
+    		coalprod: "7.06e-1",
+    		gasprod: "6.64e-1",
+    		oilprod: "5.73e-1",
+    		coalprodpc: "6.17e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.94e-1",
+    		gini: "3.67e-1",
+    		gdp: "8.54e-1",
+    		sharehh: "4.83e-1",
+    		tradeopen: "6.22e-1"
+    	},
+    	{
+    		yr: 1955,
+    		cont: "Europe",
+    		coalprod: "4.45e-1",
+    		gasprod: "3.72e-2",
+    		oilprod: "1.96e-1",
+    		coalprodpc: "5.01e-1",
+    		gasprodpc: "2.60e-1",
+    		oilprodpc: "5.81e-2",
+    		gini: "0.00e+0",
+    		gdp: "3.08e-2",
+    		sharehh: "7.81e-1",
+    		tradeopen: "1.01e-1"
+    	},
+    	{
+    		yr: 1960,
+    		cont: "Europe",
+    		coalprod: "5.99e-1",
+    		gasprod: "5.82e-2",
+    		oilprod: "3.58e-1",
+    		coalprodpc: "5.95e-1",
+    		gasprodpc: "4.12e-1",
+    		oilprodpc: "6.69e-2",
+    		gini: "0.00e+0",
+    		gdp: "6.48e-2",
+    		sharehh: "6.95e-1",
+    		tradeopen: "1.48e-1"
+    	},
+    	{
+    		yr: 1965,
+    		cont: "Europe",
+    		coalprod: "6.51e-1",
+    		gasprod: "1.62e-1",
+    		oilprod: "4.39e-1",
+    		coalprodpc: "5.66e-1",
+    		gasprodpc: "4.83e-1",
+    		oilprodpc: "1.76e-1",
+    		gini: "0.00e+0",
+    		gdp: "1.19e-1",
+    		sharehh: "4.63e-1",
+    		tradeopen: "1.51e-1"
+    	},
+    	{
+    		yr: 1970,
+    		cont: "Europe",
+    		coalprod: "4.16e-1",
+    		gasprod: "4.77e-1",
+    		oilprod: "3.39e-1",
+    		coalprodpc: "4.20e-1",
+    		gasprodpc: "4.14e-1",
+    		oilprodpc: "4.68e-1",
+    		gini: "0.00e+0",
+    		gdp: "1.69e-1",
+    		sharehh: "3.08e-1",
+    		tradeopen: "2.04e-1"
+    	},
+    	{
+    		yr: 1975,
+    		cont: "Europe",
+    		coalprod: "3.17e-1",
+    		gasprod: "4.85e-1",
+    		oilprod: "2.57e-1",
+    		coalprodpc: "3.36e-1",
+    		gasprodpc: "2.66e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "0.00e+0",
+    		gdp: "2.29e-1",
+    		sharehh: "4.25e-1",
+    		tradeopen: "2.74e-1"
+    	},
+    	{
+    		yr: 1980,
+    		cont: "Europe",
+    		coalprod: "3.43e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "2.82e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "8.28e-1",
+    		gdp: "2.93e-1",
+    		sharehh: "4.71e-1",
+    		tradeopen: "4.02e-1"
+    	},
+    	{
+    		yr: 1985,
+    		cont: "Europe",
+    		coalprod: "4.42e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "3.94e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "8.55e-1",
+    		gdp: "2.97e-1",
+    		sharehh: "3.53e-1",
+    		tradeopen: "4.75e-1"
+    	},
+    	{
+    		yr: 1990,
+    		cont: "Europe",
+    		coalprod: "3.24e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "2.60e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "8.63e-1",
+    		gdp: "4.16e-1",
+    		sharehh: "5.03e-1",
+    		tradeopen: "4.15e-1"
+    	},
+    	{
+    		yr: 1995,
+    		cont: "Europe",
+    		coalprod: "1.56e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.36e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "8.70e-1",
+    		gdp: "4.30e-1",
+    		sharehh: "4.00e-1",
+    		tradeopen: "4.21e-1"
+    	},
+    	{
+    		yr: 2000,
+    		cont: "Europe",
+    		coalprod: "2.02e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "5.00e-1",
+    		coalprodpc: "1.97e-1",
+    		gasprodpc: "5.00e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "8.58e-1",
+    		gdp: "5.25e-1",
+    		sharehh: "4.15e-1",
+    		tradeopen: "6.42e-1"
+    	},
+    	{
+    		yr: 2005,
+    		cont: "Europe",
+    		coalprod: "1.60e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "4.76e-1",
+    		coalprodpc: "1.50e-1",
+    		gasprodpc: "4.64e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "9.21e-1",
+    		gdp: "7.01e-1",
+    		sharehh: "4.01e-1",
+    		tradeopen: "6.54e-1"
+    	},
+    	{
+    		yr: 2010,
+    		cont: "Europe",
+    		coalprod: "1.50e-1",
+    		gasprod: "5.00e-1",
+    		oilprod: "3.74e-1",
+    		coalprodpc: "1.40e-1",
+    		gasprodpc: "3.96e-1",
+    		oilprodpc: "5.00e-1",
+    		gini: "9.19e-1",
+    		gdp: "8.50e-1",
+    		sharehh: "4.40e-1",
+    		tradeopen: "7.33e-1"
+    	},
+    	{
+    		yr: 2015,
+    		cont: "Europe",
+    		coalprod: "6.35e-2",
+    		gasprod: "3.65e-1",
+    		oilprod: "3.34e-1",
+    		coalprodpc: "5.74e-2",
+    		gasprodpc: "3.21e-1",
+    		oilprodpc: "3.52e-1",
+    		gini: "9.23e-1",
+    		gdp: "9.12e-1",
+    		sharehh: "2.35e-1",
+    		tradeopen: "9.31e-1"
+    	},
+    	{
+    		yr: 1950,
+    		cont: "Oceania",
+    		coalprod: "1.44e-1",
+    		gasprod: "2.50e-1",
+    		oilprod: "2.50e-1",
+    		coalprodpc: "2.38e-1",
+    		gasprodpc: "2.50e-1",
+    		oilprodpc: "2.50e-1",
+    		gini: "6.31e-1",
+    		gdp: "7.19e-3",
+    		sharehh: "6.32e-1",
+    		tradeopen: "6.72e-1"
+    	},
+    	{
+    		yr: 1955,
+    		cont: "Oceania",
+    		coalprod: "1.40e-1",
+    		gasprod: "2.50e-1",
+    		oilprod: "2.50e-1",
+    		coalprodpc: "1.85e-1",
+    		gasprodpc: "2.50e-1",
+    		oilprodpc: "2.50e-1",
+    		gini: "3.55e-1",
+    		gdp: "2.57e-2",
+    		sharehh: "6.23e-1",
+    		tradeopen: "3.52e-1"
+    	},
+    	{
+    		yr: 1960,
+    		cont: "Oceania",
+    		coalprod: "1.89e-1",
+    		gasprod: "2.50e-1",
+    		oilprod: "2.50e-1",
+    		coalprodpc: "2.17e-1",
+    		gasprodpc: "2.50e-1",
+    		oilprodpc: "2.50e-1",
+    		gini: "4.25e-1",
+    		gdp: "5.91e-2",
+    		sharehh: "6.23e-1",
+    		tradeopen: "1.68e-1"
+    	},
+    	{
+    		yr: 1965,
+    		cont: "Oceania",
+    		coalprod: "1.68e-1",
+    		gasprod: "2.50e-1",
+    		oilprod: "2.55e-1",
+    		coalprodpc: "1.54e-1",
+    		gasprodpc: "2.58e-1",
+    		oilprodpc: "2.50e-1",
+    		gini: "4.04e-1",
+    		gdp: "1.02e-1",
+    		sharehh: "5.83e-1",
+    		tradeopen: "1.59e-1"
+    	},
+    	{
+    		yr: 1970,
+    		cont: "Oceania",
+    		coalprod: "1.58e-1",
+    		gasprod: "2.56e-1",
+    		oilprod: "3.67e-1",
+    		coalprodpc: "1.24e-1",
+    		gasprodpc: "4.24e-1",
+    		oilprodpc: "2.62e-1",
+    		gini: "3.47e-1",
+    		gdp: "1.41e-1",
+    		sharehh: "3.93e-1",
+    		tradeopen: "1.55e-1"
+    	},
+    	{
+    		yr: 1975,
+    		cont: "Oceania",
+    		coalprod: "1.98e-1",
+    		gasprod: "2.70e-1",
+    		oilprod: "5.41e-1",
+    		coalprodpc: "1.48e-1",
+    		gasprodpc: "6.51e-1",
+    		oilprodpc: "2.87e-1",
+    		gini: "2.27e-1",
+    		gdp: "1.82e-1",
+    		sharehh: "4.54e-1",
+    		tradeopen: "2.75e-1"
+    	},
+    	{
+    		yr: 1980,
+    		cont: "Oceania",
+    		coalprod: "2.10e-1",
+    		gasprod: "2.89e-1",
+    		oilprod: "5.44e-1",
+    		coalprodpc: "1.72e-1",
+    		gasprodpc: "6.32e-1",
+    		oilprodpc: "3.17e-1",
+    		gini: "2.16e-1",
+    		gdp: "2.03e-1",
+    		sharehh: "3.81e-1",
+    		tradeopen: "4.93e-1"
+    	},
+    	{
+    		yr: 1985,
+    		cont: "Oceania",
+    		coalprod: "2.68e-1",
+    		gasprod: "2.97e-1",
+    		oilprod: "6.64e-1",
+    		coalprodpc: "2.42e-1",
+    		gasprodpc: "7.50e-1",
+    		oilprodpc: "3.25e-1",
+    		gini: "2.37e-1",
+    		gdp: "2.47e-1",
+    		sharehh: "2.81e-1",
+    		tradeopen: "5.46e-1"
+    	},
+    	{
+    		yr: 1990,
+    		cont: "Oceania",
+    		coalprod: "3.24e-1",
+    		gasprod: "3.22e-1",
+    		oilprod: "6.58e-1",
+    		coalprodpc: "2.89e-1",
+    		gasprodpc: "7.06e-1",
+    		oilprodpc: "3.57e-1",
+    		gini: "3.36e-1",
+    		gdp: "3.20e-1",
+    		sharehh: "3.91e-1",
+    		tradeopen: "4.03e-1"
+    	},
+    	{
+    		yr: 1995,
+    		cont: "Oceania",
+    		coalprod: "4.91e-1",
+    		gasprod: "3.53e-1",
+    		oilprod: "6.09e-1",
+    		coalprodpc: "4.26e-1",
+    		gasprodpc: "6.28e-1",
+    		oilprodpc: "3.95e-1",
+    		gini: "3.97e-1",
+    		gdp: "4.05e-1",
+    		sharehh: "3.84e-1",
+    		tradeopen: "6.19e-1"
+    	},
+    	{
+    		yr: 2000,
+    		cont: "Oceania",
+    		coalprod: "5.31e-1",
+    		gasprod: "3.59e-1",
+    		oilprod: "7.50e-1",
+    		coalprodpc: "4.54e-1",
+    		gasprodpc: "7.49e-1",
+    		oilprodpc: "3.95e-1",
+    		gini: "3.64e-1",
+    		gdp: "5.16e-1",
+    		sharehh: "4.29e-1",
+    		tradeopen: "9.53e-1"
+    	},
+    	{
+    		yr: 2005,
+    		cont: "Oceania",
+    		coalprod: "7.96e-1",
+    		gasprod: "3.84e-1",
+    		oilprod: "5.91e-1",
+    		coalprodpc: "6.58e-1",
+    		gasprodpc: "5.70e-1",
+    		oilprodpc: "4.17e-1",
+    		gini: "3.59e-1",
+    		gdp: "6.34e-1",
+    		sharehh: "3.18e-1",
+    		tradeopen: "7.15e-1"
+    	},
+    	{
+    		yr: 2010,
+    		cont: "Oceania",
+    		coalprod: "8.51e-1",
+    		gasprod: "4.34e-1",
+    		oilprod: "5.82e-1",
+    		coalprodpc: "6.58e-1",
+    		gasprodpc: "5.34e-1",
+    		oilprodpc: "4.59e-1",
+    		gini: "3.26e-1",
+    		gdp: "7.70e-1",
+    		sharehh: "2.72e-1",
+    		tradeopen: "7.25e-1"
+    	},
+    	{
+    		yr: 2015,
+    		cont: "Oceania",
+    		coalprod: "7.22e-1",
+    		gasprod: "5.09e-1",
+    		oilprod: "4.79e-1",
+    		coalprodpc: "5.37e-1",
+    		gasprodpc: "4.31e-1",
+    		oilprodpc: "5.23e-1",
+    		gini: "4.30e-1",
+    		gdp: "8.43e-1",
+    		sharehh: "3.85e-1",
+    		tradeopen: "6.42e-1"
+    	},
+    	{
+    		yr: 1900,
+    		cont: "World",
+    		coalprod: "8.66e-3",
+    		gasprod: "1.50e-1",
+    		oilprod: "1.50e-1",
+    		coalprodpc: "9.97e-2",
+    		gasprodpc: "1.50e-1",
+    		oilprodpc: "1.50e-1",
+    		gini: "0.00e+0",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1905,
+    		cont: "World",
+    		coalprod: "2.53e-2",
+    		gasprod: "1.50e-1",
+    		oilprod: "1.50e-1",
+    		coalprodpc: "1.43e-1",
+    		gasprodpc: "1.50e-1",
+    		oilprodpc: "1.50e-1",
+    		gini: "0.00e+0",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1910,
+    		cont: "World",
+    		coalprod: "6.21e-2",
+    		gasprod: "1.50e-1",
+    		oilprod: "1.50e-1",
+    		coalprodpc: "2.65e-1",
+    		gasprodpc: "1.50e-1",
+    		oilprodpc: "1.50e-1",
+    		gini: "0.00e+0",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1915,
+    		cont: "World",
+    		coalprod: "6.85e-2",
+    		gasprod: "1.50e-1",
+    		oilprod: "1.50e-1",
+    		coalprodpc: "2.18e-1",
+    		gasprodpc: "1.51e-1",
+    		oilprodpc: "1.50e-1",
+    		gini: "2.65e-1",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1920,
+    		cont: "World",
+    		coalprod: "6.60e-2",
+    		gasprod: "1.50e-1",
+    		oilprod: "1.51e-1",
+    		coalprodpc: "1.84e-1",
+    		gasprodpc: "1.52e-1",
+    		oilprodpc: "1.50e-1",
+    		gini: "2.47e-1",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1925,
+    		cont: "World",
+    		coalprod: "6.31e-2",
+    		gasprod: "1.50e-1",
+    		oilprod: "1.52e-1",
+    		coalprodpc: "1.67e-1",
+    		gasprodpc: "1.59e-1",
+    		oilprodpc: "1.50e-1",
+    		gini: "2.92e-1",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1930,
+    		cont: "World",
+    		coalprod: "7.09e-2",
+    		gasprod: "1.50e-1",
+    		oilprod: "1.56e-1",
+    		coalprodpc: "1.77e-1",
+    		gasprodpc: "1.75e-1",
+    		oilprodpc: "1.50e-1",
+    		gini: "2.94e-1",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1935,
+    		cont: "World",
+    		coalprod: "7.17e-2",
+    		gasprod: "1.50e-1",
+    		oilprod: "1.58e-1",
+    		coalprodpc: "1.39e-1",
+    		gasprodpc: "1.79e-1",
+    		oilprodpc: "1.50e-1",
+    		gini: "3.23e-1",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1940,
+    		cont: "World",
+    		coalprod: "1.24e-1",
+    		gasprod: "1.52e-1",
+    		oilprod: "1.62e-1",
+    		coalprodpc: "1.97e-1",
+    		gasprodpc: "1.86e-1",
+    		oilprodpc: "1.55e-1",
+    		gini: "2.38e-1",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1945,
+    		cont: "World",
+    		coalprod: "1.10e-1",
+    		gasprod: "1.52e-1",
+    		oilprod: "1.60e-1",
+    		coalprodpc: "1.80e-1",
+    		gasprodpc: "1.81e-1",
+    		oilprodpc: "1.56e-1",
+    		gini: "1.02e-1",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	},
+    	{
+    		yr: 1950,
+    		cont: "World",
+    		coalprod: "1.40e-1",
+    		gasprod: "1.58e-1",
+    		oilprod: "1.75e-1",
+    		coalprodpc: "2.15e-1",
+    		gasprodpc: "2.00e-1",
+    		oilprodpc: "1.70e-1",
+    		gini: "1.54e-1",
+    		gdp: "2.09e-3",
+    		sharehh: "8.09e-1",
+    		tradeopen: "2.73e-1"
+    	},
+    	{
+    		yr: 1955,
+    		cont: "World",
+    		coalprod: "1.58e-1",
+    		gasprod: "1.64e-1",
+    		oilprod: "2.17e-1",
+    		coalprodpc: "2.07e-1",
+    		gasprodpc: "2.55e-1",
+    		oilprodpc: "1.79e-1",
+    		gini: "1.92e-1",
+    		gdp: "1.75e-2",
+    		sharehh: "7.42e-1",
+    		tradeopen: "2.30e-1"
+    	},
+    	{
+    		yr: 1960,
+    		cont: "World",
+    		coalprod: "2.16e-1",
+    		gasprod: "1.76e-1",
+    		oilprod: "2.71e-1",
+    		coalprodpc: "2.60e-1",
+    		gasprodpc: "3.36e-1",
+    		oilprodpc: "1.93e-1",
+    		gini: "2.05e-1",
+    		gdp: "3.82e-2",
+    		sharehh: "6.46e-1",
+    		tradeopen: "1.81e-1"
+    	},
+    	{
+    		yr: 1965,
+    		cont: "World",
+    		coalprod: "2.45e-1",
+    		gasprod: "2.11e-1",
+    		oilprod: "3.47e-1",
+    		coalprodpc: "2.49e-1",
+    		gasprodpc: "4.15e-1",
+    		oilprodpc: "2.50e-1",
+    		gini: "1.89e-1",
+    		gdp: "7.13e-2",
+    		sharehh: "5.72e-1",
+    		tradeopen: "1.52e-1"
+    	},
+    	{
+    		yr: 1970,
+    		cont: "World",
+    		coalprod: "2.12e-1",
+    		gasprod: "2.84e-1",
+    		oilprod: "3.95e-1",
+    		coalprodpc: "2.13e-1",
+    		gasprodpc: "4.37e-1",
+    		oilprodpc: "3.17e-1",
+    		gini: "1.58e-1",
+    		gdp: "1.11e-1",
+    		sharehh: "4.62e-1",
+    		tradeopen: "1.71e-1"
+    	},
+    	{
+    		yr: 1975,
+    		cont: "World",
+    		coalprod: "2.50e-1",
+    		gasprod: "3.02e-1",
+    		oilprod: "4.28e-1",
+    		coalprodpc: "2.49e-1",
+    		gasprodpc: "4.66e-1",
+    		oilprodpc: "3.44e-1",
+    		gini: "1.42e-1",
+    		gdp: "1.59e-1",
+    		sharehh: "4.09e-1",
+    		tradeopen: "2.92e-1"
+    	},
+    	{
+    		yr: 1980,
+    		cont: "World",
+    		coalprod: "2.04e-1",
+    		gasprod: "3.42e-1",
+    		oilprod: "5.22e-1",
+    		coalprodpc: "2.03e-1",
+    		gasprodpc: "5.75e-1",
+    		oilprodpc: "3.96e-1",
+    		gini: "5.57e-1",
+    		gdp: "1.96e-1",
+    		sharehh: "4.24e-1",
+    		tradeopen: "3.86e-1"
+    	},
+    	{
+    		yr: 1985,
+    		cont: "World",
+    		coalprod: "3.14e-1",
+    		gasprod: "3.37e-1",
+    		oilprod: "5.54e-1",
+    		coalprodpc: "2.89e-1",
+    		gasprodpc: "5.96e-1",
+    		oilprodpc: "4.02e-1",
+    		gini: "4.73e-1",
+    		gdp: "2.23e-1",
+    		sharehh: "3.35e-1",
+    		tradeopen: "3.70e-1"
+    	},
+    	{
+    		yr: 1990,
+    		cont: "World",
+    		coalprod: "2.75e-1",
+    		gasprod: "3.94e-1",
+    		oilprod: "5.44e-1",
+    		coalprodpc: "2.27e-1",
+    		gasprodpc: "5.54e-1",
+    		oilprodpc: "4.53e-1",
+    		gini: "5.58e-1",
+    		gdp: "2.92e-1",
+    		sharehh: "4.61e-1",
+    		tradeopen: "3.68e-1"
+    	},
+    	{
+    		yr: 1995,
+    		cont: "World",
+    		coalprod: "2.61e-1",
+    		gasprod: "4.40e-1",
+    		oilprod: "5.31e-1",
+    		coalprodpc: "2.44e-1",
+    		gasprodpc: "5.35e-1",
+    		oilprodpc: "4.70e-1",
+    		gini: "6.63e-1",
+    		gdp: "3.39e-1",
+    		sharehh: "4.23e-1",
+    		tradeopen: "5.00e-1"
+    	},
+    	{
+    		yr: 2000,
+    		cont: "World",
+    		coalprod: "3.02e-1",
+    		gasprod: "4.70e-1",
+    		oilprod: "5.57e-1",
+    		coalprodpc: "2.47e-1",
+    		gasprodpc: "5.59e-1",
+    		oilprodpc: "4.89e-1",
+    		gini: "6.38e-1",
+    		gdp: "4.18e-1",
+    		sharehh: "4.28e-1",
+    		tradeopen: "6.49e-1"
+    	},
+    	{
+    		yr: 2005,
+    		cont: "World",
+    		coalprod: "3.69e-1",
+    		gasprod: "4.79e-1",
+    		oilprod: "5.46e-1",
+    		coalprodpc: "2.97e-1",
+    		gasprodpc: "5.45e-1",
+    		oilprodpc: "5.08e-1",
+    		gini: "6.92e-1",
+    		gdp: "5.55e-1",
+    		sharehh: "3.75e-1",
+    		tradeopen: "6.89e-1"
+    	},
+    	{
+    		yr: 2010,
+    		cont: "World",
+    		coalprod: "4.34e-1",
+    		gasprod: "5.61e-1",
+    		oilprod: "5.53e-1",
+    		coalprodpc: "3.21e-1",
+    		gasprodpc: "5.13e-1",
+    		oilprodpc: "5.58e-1",
+    		gini: "6.42e-1",
+    		gdp: "7.67e-1",
+    		sharehh: "3.81e-1",
+    		tradeopen: "6.93e-1"
+    	},
+    	{
+    		yr: 2015,
+    		cont: "World",
+    		coalprod: "4.63e-1",
+    		gasprod: "5.83e-1",
+    		oilprod: "5.21e-1",
+    		coalprodpc: "2.99e-1",
+    		gasprodpc: "4.76e-1",
+    		oilprodpc: "5.55e-1",
+    		gini: "5.55e-1",
+    		gdp: "8.95e-1",
+    		sharehh: "3.98e-1",
+    		tradeopen: "7.19e-1"
+    	},
+    	{
+    		yr: 2020,
+    		cont: "World",
+    		coalprod: "3.19e-1",
+    		gasprod: "7.10e-1",
+    		oilprod: "4.79e-1",
+    		coalprodpc: "2.06e-1",
+    		gasprodpc: "3.37e-1",
+    		oilprodpc: "6.35e-1",
+    		gini: "8.92e-1",
+    		gdp: "NaN",
+    		sharehh: "NaN",
+    		tradeopen: "NaN"
+    	}
+    ];
 
-    const { console: console_1 } = globals;
-    const file$4 = "src\\App.svelte";
+    /* src\components\TrendLinesChart.svelte generated by Svelte v3.31.0 */
+
+    const { Object: Object_1$1, console: console_1 } = globals;
+    const file$4 = "src\\components\\TrendLinesChart.svelte";
+
+    function get_each_context$2(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[8] = list[i];
+    	child_ctx[10] = i;
+    	return child_ctx;
+    }
+
+    // (53:8) {#each continents as conti, i}
+    function create_each_block$2(ctx) {
+    	let path;
+    	let path_d_value;
+    	let path_stroke_value;
+    	let path_stroke_width_value;
+
+    	function func(...args) {
+    		return /*func*/ ctx[3](/*conti*/ ctx[8], ...args);
+    	}
+
+    	const block = {
+    		c: function create() {
+    			path = svg_element("path");
+    			attr_dev(path, "d", path_d_value = /*linePath*/ ctx[2]("coalprod", "gdp")(/*linesData*/ ctx[1].filter(func)));
+    			attr_dev(path, "stroke", path_stroke_value = schemeCategory10[/*i*/ ctx[10]]);
+    			attr_dev(path, "fill", "none");
+    			attr_dev(path, "stroke-width", path_stroke_width_value = 1.5);
+    			add_location(path, file$4, 53, 12, 1699);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, path, anchor);
+    		},
+    		p: function update(new_ctx, dirty) {
+    			ctx = new_ctx;
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(path);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block$2.name,
+    		type: "each",
+    		source: "(53:8) {#each continents as conti, i}",
+    		ctx
+    	});
+
+    	return block;
+    }
 
     function create_fragment$4(ctx) {
+    	let div;
+    	let svg;
+    	let svg_viewBox_value;
+    	let each_value = /*continents*/ ctx[0];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
+    	}
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			svg = svg_element("svg");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			attr_dev(svg, "width", width$1);
+    			attr_dev(svg, "height", height$1);
+    			attr_dev(svg, "viewBox", svg_viewBox_value = [0, 0, width$1, height$1]);
+    			add_location(svg, file$4, 47, 4, 1558);
+    			attr_dev(div, "class", "trend-line");
+    			add_location(div, file$4, 46, 0, 1528);
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			append_dev(div, svg);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(svg, null);
+    			}
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*linePath, linesData, continents, schemeCategory10*/ 7) {
+    				each_value = /*continents*/ ctx[0];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$2(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block$2(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(svg, null);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
+    			}
+    		},
+    		i: noop,
+    		o: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+    			destroy_each(each_blocks, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment$4.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    const height$1 = 500;
+    const width$1 = 700;
+
+    function instance$c($$self, $$props, $$invalidate) {
+    	let { $$slots: slots = {}, $$scope } = $$props;
+    	validate_slots("TrendLinesChart", slots, []);
+    	const margin = { top: 20, right: 20, bottom: 20, left: 50 };
+    	const trendInds = Object.keys(trendData[0]).slice(2);
+    	const continents = [...new Set(trendData.map(d => d.cont))];
+
+    	const linesData = from([...trendData]).derive(trendInds.reduce(
+    		(obj, ind) => {
+    			return {
+    				...obj,
+    				[ind]: _escape(d => {
+    					if (d[ind]) {
+    						const [b, e] = d[ind].split("e");
+    						return b * Math.pow(10, e);
+    					} else if (d[ind]) return 0;
+    				})
+    			};
+    		},
+    		{}
+    	)).derive({
+    		date: _escape(d => new Date(d.yr, 0, 1))
+    	}).relocate("date", { before: "yr" }).select(not("yr")).objects();
+
+    	console.log(linesData);
+    	const xScaleLines = linear$1().domain([0, 1]).range([margin.left, width$1 - margin.right]);
+    	const yScaleLines = linear$1().domain([0, 1]).range([height$1 - margin.bottom, margin.top]);
+
+    	const linePath = (keyFF, keyEcon) => line().// .defined(d => !isNaN(d.date))
+    	curve(curveBasis).x(d => xScaleLines(d[keyFF])).y(d => yScaleLines(d[keyEcon]));
+
+    	const writable_props = [];
+
+    	Object_1$1.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console_1.warn(`<TrendLinesChart> was created with unknown prop '${key}'`);
+    	});
+
+    	const func = (conti, d) => d.cont === conti;
+
+    	$$self.$capture_state = () => ({
+    		aq,
+    		trendData,
+    		line,
+    		curveBasis,
+    		scaleLinear: linear$1,
+    		scaleUtc: utcTime,
+    		max,
+    		extent,
+    		schemeCategory10,
+    		height: height$1,
+    		width: width$1,
+    		margin,
+    		trendInds,
+    		continents,
+    		linesData,
+    		xScaleLines,
+    		yScaleLines,
+    		linePath
+    	});
+
+    	return [continents, linesData, linePath, func];
+    }
+
+    class TrendLinesChart extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$c, create_fragment$4, safe_not_equal, {});
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "TrendLinesChart",
+    			options,
+    			id: create_fragment$4.name
+    		});
+    	}
+    }
+
+    /* src\App.svelte generated by Svelte v3.31.0 */
+
+    const { console: console_1$1 } = globals;
+    const file$5 = "src\\App.svelte";
+
+    function create_fragment$5(ctx) {
     	let main;
     	let h1;
     	let t1;
     	let line;
     	let t2;
     	let ffrenchart;
+    	let t3;
+    	let trendlineschart;
     	let current;
 
     	line = new Line({
@@ -34611,6 +36340,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     		});
 
     	ffrenchart = new FfRenChart({ $$inline: true });
+    	trendlineschart = new TrendLinesChart({ $$inline: true });
 
     	const block = {
     		c: function create() {
@@ -34621,10 +36351,12 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			create_component(line.$$.fragment);
     			t2 = space();
     			create_component(ffrenchart.$$.fragment);
+    			t3 = space();
+    			create_component(trendlineschart.$$.fragment);
     			attr_dev(h1, "class", "svelte-84axh6");
-    			add_location(h1, file$4, 11, 1, 445);
+    			add_location(h1, file$5, 12, 1, 515);
     			attr_dev(main, "class", "svelte-84axh6");
-    			add_location(main, file$4, 10, 0, 436);
+    			add_location(main, file$5, 11, 0, 506);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -34636,6 +36368,8 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			mount_component(line, main, null);
     			append_dev(main, t2);
     			mount_component(ffrenchart, main, null);
+    			append_dev(main, t3);
+    			mount_component(trendlineschart, main, null);
     			current = true;
     		},
     		p: noop,
@@ -34643,23 +36377,26 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			if (current) return;
     			transition_in(line.$$.fragment, local);
     			transition_in(ffrenchart.$$.fragment, local);
+    			transition_in(trendlineschart.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
     			transition_out(line.$$.fragment, local);
     			transition_out(ffrenchart.$$.fragment, local);
+    			transition_out(trendlineschart.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
     			destroy_component(line);
     			destroy_component(ffrenchart);
+    			destroy_component(trendlineschart);
     		}
     	};
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$4.name,
+    		id: create_fragment$5.name,
     		type: "component",
     		source: "",
     		ctx
@@ -34668,7 +36405,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	return block;
     }
 
-    function instance$c($$self, $$props, $$invalidate) {
+    function instance$d($$self, $$props, $$invalidate) {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots("App", slots, []);
 
@@ -34682,10 +36419,16 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
-    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console_1.warn(`<App> was created with unknown prop '${key}'`);
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console_1$1.warn(`<App> was created with unknown prop '${key}'`);
     	});
 
-    	$$self.$capture_state = () => ({ onMount, Line, FfRenChart, RussData });
+    	$$self.$capture_state = () => ({
+    		onMount,
+    		Line,
+    		FfRenChart,
+    		TrendLinesChart,
+    		RussData
+    	});
 
     	$$self.$inject_state = $$props => {
     		if ("RussData" in $$props) $$invalidate(0, RussData = $$props.RussData);
@@ -34701,13 +36444,13 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     class App extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$c, create_fragment$4, safe_not_equal, {});
+    		init(this, options, instance$d, create_fragment$5, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "App",
     			options,
-    			id: create_fragment$4.name
+    			id: create_fragment$5.name
     		});
     	}
     }
