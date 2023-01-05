@@ -3422,47 +3422,46 @@ var app = (function () {
       return domain;
     }
 
-    var t0 = new Date,
-        t1 = new Date;
+    const t0 = new Date, t1 = new Date;
 
-    function newInterval(floori, offseti, count, field) {
+    function timeInterval(floori, offseti, count, field) {
 
       function interval(date) {
         return floori(date = arguments.length === 0 ? new Date : new Date(+date)), date;
       }
 
-      interval.floor = function(date) {
+      interval.floor = (date) => {
         return floori(date = new Date(+date)), date;
       };
 
-      interval.ceil = function(date) {
+      interval.ceil = (date) => {
         return floori(date = new Date(date - 1)), offseti(date, 1), floori(date), date;
       };
 
-      interval.round = function(date) {
-        var d0 = interval(date),
-            d1 = interval.ceil(date);
+      interval.round = (date) => {
+        const d0 = interval(date), d1 = interval.ceil(date);
         return date - d0 < d1 - date ? d0 : d1;
       };
 
-      interval.offset = function(date, step) {
+      interval.offset = (date, step) => {
         return offseti(date = new Date(+date), step == null ? 1 : Math.floor(step)), date;
       };
 
-      interval.range = function(start, stop, step) {
-        var range = [], previous;
+      interval.range = (start, stop, step) => {
+        const range = [];
         start = interval.ceil(start);
         step = step == null ? 1 : Math.floor(step);
         if (!(start < stop) || !(step > 0)) return range; // also handles Invalid Date
+        let previous;
         do range.push(previous = new Date(+start)), offseti(start, step), floori(start);
         while (previous < start && start < stop);
         return range;
       };
 
-      interval.filter = function(test) {
-        return newInterval(function(date) {
+      interval.filter = (test) => {
+        return timeInterval((date) => {
           if (date >= date) while (floori(date), !test(date)) date.setTime(date - 1);
-        }, function(date, step) {
+        }, (date, step) => {
           if (date >= date) {
             if (step < 0) while (++step <= 0) {
               while (offseti(date, -1), !test(date)) {} // eslint-disable-line no-empty
@@ -3474,43 +3473,43 @@ var app = (function () {
       };
 
       if (count) {
-        interval.count = function(start, end) {
+        interval.count = (start, end) => {
           t0.setTime(+start), t1.setTime(+end);
           floori(t0), floori(t1);
           return Math.floor(count(t0, t1));
         };
 
-        interval.every = function(step) {
+        interval.every = (step) => {
           step = Math.floor(step);
           return !isFinite(step) || !(step > 0) ? null
               : !(step > 1) ? interval
               : interval.filter(field
-                  ? function(d) { return field(d) % step === 0; }
-                  : function(d) { return interval.count(0, d) % step === 0; });
+                  ? (d) => field(d) % step === 0
+                  : (d) => interval.count(0, d) % step === 0);
         };
       }
 
       return interval;
     }
 
-    var millisecond = newInterval(function() {
+    const millisecond = timeInterval(() => {
       // noop
-    }, function(date, step) {
+    }, (date, step) => {
       date.setTime(+date + step);
-    }, function(start, end) {
+    }, (start, end) => {
       return end - start;
     });
 
     // An optimized implementation for this simple case.
-    millisecond.every = function(k) {
+    millisecond.every = (k) => {
       k = Math.floor(k);
       if (!isFinite(k) || !(k > 0)) return null;
       if (!(k > 1)) return millisecond;
-      return newInterval(function(date) {
+      return timeInterval((date) => {
         date.setTime(Math.floor(date / k) * k);
-      }, function(date, step) {
+      }, (date, step) => {
         date.setTime(+date + step * k);
-      }, function(start, end) {
+      }, (start, end) => {
         return (end - start) / k;
       });
     };
@@ -3523,173 +3522,183 @@ var app = (function () {
     const durationMonth = durationDay * 30;
     const durationYear = durationDay * 365;
 
-    var second = newInterval(function(date) {
+    const second = timeInterval((date) => {
       date.setTime(date - date.getMilliseconds());
-    }, function(date, step) {
+    }, (date, step) => {
       date.setTime(+date + step * durationSecond);
-    }, function(start, end) {
+    }, (start, end) => {
       return (end - start) / durationSecond;
-    }, function(date) {
+    }, (date) => {
       return date.getUTCSeconds();
     });
 
-    var minute = newInterval(function(date) {
+    const timeMinute = timeInterval((date) => {
       date.setTime(date - date.getMilliseconds() - date.getSeconds() * durationSecond);
-    }, function(date, step) {
+    }, (date, step) => {
       date.setTime(+date + step * durationMinute);
-    }, function(start, end) {
+    }, (start, end) => {
       return (end - start) / durationMinute;
-    }, function(date) {
+    }, (date) => {
       return date.getMinutes();
     });
 
-    var hour = newInterval(function(date) {
+    const utcMinute = timeInterval((date) => {
+      date.setUTCSeconds(0, 0);
+    }, (date, step) => {
+      date.setTime(+date + step * durationMinute);
+    }, (start, end) => {
+      return (end - start) / durationMinute;
+    }, (date) => {
+      return date.getUTCMinutes();
+    });
+
+    const timeHour = timeInterval((date) => {
       date.setTime(date - date.getMilliseconds() - date.getSeconds() * durationSecond - date.getMinutes() * durationMinute);
-    }, function(date, step) {
+    }, (date, step) => {
       date.setTime(+date + step * durationHour);
-    }, function(start, end) {
+    }, (start, end) => {
       return (end - start) / durationHour;
-    }, function(date) {
+    }, (date) => {
       return date.getHours();
     });
 
-    var day = newInterval(
+    const utcHour = timeInterval((date) => {
+      date.setUTCMinutes(0, 0, 0);
+    }, (date, step) => {
+      date.setTime(+date + step * durationHour);
+    }, (start, end) => {
+      return (end - start) / durationHour;
+    }, (date) => {
+      return date.getUTCHours();
+    });
+
+    const timeDay = timeInterval(
       date => date.setHours(0, 0, 0, 0),
       (date, step) => date.setDate(date.getDate() + step),
       (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationDay,
       date => date.getDate() - 1
     );
 
-    function weekday(i) {
-      return newInterval(function(date) {
+    const utcDay = timeInterval((date) => {
+      date.setUTCHours(0, 0, 0, 0);
+    }, (date, step) => {
+      date.setUTCDate(date.getUTCDate() + step);
+    }, (start, end) => {
+      return (end - start) / durationDay;
+    }, (date) => {
+      return date.getUTCDate() - 1;
+    });
+
+    const unixDay = timeInterval((date) => {
+      date.setUTCHours(0, 0, 0, 0);
+    }, (date, step) => {
+      date.setUTCDate(date.getUTCDate() + step);
+    }, (start, end) => {
+      return (end - start) / durationDay;
+    }, (date) => {
+      return Math.floor(date / durationDay);
+    });
+
+    function timeWeekday(i) {
+      return timeInterval((date) => {
         date.setDate(date.getDate() - (date.getDay() + 7 - i) % 7);
         date.setHours(0, 0, 0, 0);
-      }, function(date, step) {
+      }, (date, step) => {
         date.setDate(date.getDate() + step * 7);
-      }, function(start, end) {
+      }, (start, end) => {
         return (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationWeek;
       });
     }
 
-    var sunday = weekday(0);
-    var monday = weekday(1);
-    var tuesday = weekday(2);
-    var wednesday = weekday(3);
-    var thursday = weekday(4);
-    var friday = weekday(5);
-    var saturday = weekday(6);
-
-    var month = newInterval(function(date) {
-      date.setDate(1);
-      date.setHours(0, 0, 0, 0);
-    }, function(date, step) {
-      date.setMonth(date.getMonth() + step);
-    }, function(start, end) {
-      return end.getMonth() - start.getMonth() + (end.getFullYear() - start.getFullYear()) * 12;
-    }, function(date) {
-      return date.getMonth();
-    });
-
-    var year = newInterval(function(date) {
-      date.setMonth(0, 1);
-      date.setHours(0, 0, 0, 0);
-    }, function(date, step) {
-      date.setFullYear(date.getFullYear() + step);
-    }, function(start, end) {
-      return end.getFullYear() - start.getFullYear();
-    }, function(date) {
-      return date.getFullYear();
-    });
-
-    // An optimized implementation for this simple case.
-    year.every = function(k) {
-      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval(function(date) {
-        date.setFullYear(Math.floor(date.getFullYear() / k) * k);
-        date.setMonth(0, 1);
-        date.setHours(0, 0, 0, 0);
-      }, function(date, step) {
-        date.setFullYear(date.getFullYear() + step * k);
-      });
-    };
-
-    var utcMinute = newInterval(function(date) {
-      date.setUTCSeconds(0, 0);
-    }, function(date, step) {
-      date.setTime(+date + step * durationMinute);
-    }, function(start, end) {
-      return (end - start) / durationMinute;
-    }, function(date) {
-      return date.getUTCMinutes();
-    });
-
-    var utcHour = newInterval(function(date) {
-      date.setUTCMinutes(0, 0, 0);
-    }, function(date, step) {
-      date.setTime(+date + step * durationHour);
-    }, function(start, end) {
-      return (end - start) / durationHour;
-    }, function(date) {
-      return date.getUTCHours();
-    });
-
-    var utcDay = newInterval(function(date) {
-      date.setUTCHours(0, 0, 0, 0);
-    }, function(date, step) {
-      date.setUTCDate(date.getUTCDate() + step);
-    }, function(start, end) {
-      return (end - start) / durationDay;
-    }, function(date) {
-      return date.getUTCDate() - 1;
-    });
+    const timeSunday = timeWeekday(0);
+    const timeMonday = timeWeekday(1);
+    const timeTuesday = timeWeekday(2);
+    const timeWednesday = timeWeekday(3);
+    const timeThursday = timeWeekday(4);
+    const timeFriday = timeWeekday(5);
+    const timeSaturday = timeWeekday(6);
 
     function utcWeekday(i) {
-      return newInterval(function(date) {
+      return timeInterval((date) => {
         date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 7 - i) % 7);
         date.setUTCHours(0, 0, 0, 0);
-      }, function(date, step) {
+      }, (date, step) => {
         date.setUTCDate(date.getUTCDate() + step * 7);
-      }, function(start, end) {
+      }, (start, end) => {
         return (end - start) / durationWeek;
       });
     }
 
-    var utcSunday = utcWeekday(0);
-    var utcMonday = utcWeekday(1);
-    var utcTuesday = utcWeekday(2);
-    var utcWednesday = utcWeekday(3);
-    var utcThursday = utcWeekday(4);
-    var utcFriday = utcWeekday(5);
-    var utcSaturday = utcWeekday(6);
+    const utcSunday = utcWeekday(0);
+    const utcMonday = utcWeekday(1);
+    const utcTuesday = utcWeekday(2);
+    const utcWednesday = utcWeekday(3);
+    const utcThursday = utcWeekday(4);
+    const utcFriday = utcWeekday(5);
+    const utcSaturday = utcWeekday(6);
 
-    var utcMonth = newInterval(function(date) {
+    const timeMonth = timeInterval((date) => {
+      date.setDate(1);
+      date.setHours(0, 0, 0, 0);
+    }, (date, step) => {
+      date.setMonth(date.getMonth() + step);
+    }, (start, end) => {
+      return end.getMonth() - start.getMonth() + (end.getFullYear() - start.getFullYear()) * 12;
+    }, (date) => {
+      return date.getMonth();
+    });
+
+    const utcMonth = timeInterval((date) => {
       date.setUTCDate(1);
       date.setUTCHours(0, 0, 0, 0);
-    }, function(date, step) {
+    }, (date, step) => {
       date.setUTCMonth(date.getUTCMonth() + step);
-    }, function(start, end) {
+    }, (start, end) => {
       return end.getUTCMonth() - start.getUTCMonth() + (end.getUTCFullYear() - start.getUTCFullYear()) * 12;
-    }, function(date) {
+    }, (date) => {
       return date.getUTCMonth();
     });
 
-    var utcYear = newInterval(function(date) {
+    const timeYear = timeInterval((date) => {
+      date.setMonth(0, 1);
+      date.setHours(0, 0, 0, 0);
+    }, (date, step) => {
+      date.setFullYear(date.getFullYear() + step);
+    }, (start, end) => {
+      return end.getFullYear() - start.getFullYear();
+    }, (date) => {
+      return date.getFullYear();
+    });
+
+    // An optimized implementation for this simple case.
+    timeYear.every = (k) => {
+      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : timeInterval((date) => {
+        date.setFullYear(Math.floor(date.getFullYear() / k) * k);
+        date.setMonth(0, 1);
+        date.setHours(0, 0, 0, 0);
+      }, (date, step) => {
+        date.setFullYear(date.getFullYear() + step * k);
+      });
+    };
+
+    const utcYear = timeInterval((date) => {
       date.setUTCMonth(0, 1);
       date.setUTCHours(0, 0, 0, 0);
-    }, function(date, step) {
+    }, (date, step) => {
       date.setUTCFullYear(date.getUTCFullYear() + step);
-    }, function(start, end) {
+    }, (start, end) => {
       return end.getUTCFullYear() - start.getUTCFullYear();
-    }, function(date) {
+    }, (date) => {
       return date.getUTCFullYear();
     });
 
     // An optimized implementation for this simple case.
-    utcYear.every = function(k) {
-      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval(function(date) {
+    utcYear.every = (k) => {
+      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : timeInterval((date) => {
         date.setUTCFullYear(Math.floor(date.getUTCFullYear() / k) * k);
         date.setUTCMonth(0, 1);
         date.setUTCHours(0, 0, 0, 0);
-      }, function(date, step) {
+      }, (date, step) => {
         date.setUTCFullYear(date.getUTCFullYear() + step * k);
       });
     };
@@ -3737,184 +3746,8 @@ var app = (function () {
       return [ticks, tickInterval];
     }
 
-    const [utcTicks, utcTickInterval] = ticker(utcYear, utcMonth, utcSunday, utcDay, utcHour, utcMinute);
-    const [timeTicks, timeTickInterval] = ticker(year, month, sunday, day, hour, minute);
-
-    var t0$1 = new Date,
-        t1$1 = new Date;
-
-    function newInterval$1(floori, offseti, count, field) {
-
-      function interval(date) {
-        return floori(date = arguments.length === 0 ? new Date : new Date(+date)), date;
-      }
-
-      interval.floor = function(date) {
-        return floori(date = new Date(+date)), date;
-      };
-
-      interval.ceil = function(date) {
-        return floori(date = new Date(date - 1)), offseti(date, 1), floori(date), date;
-      };
-
-      interval.round = function(date) {
-        var d0 = interval(date),
-            d1 = interval.ceil(date);
-        return date - d0 < d1 - date ? d0 : d1;
-      };
-
-      interval.offset = function(date, step) {
-        return offseti(date = new Date(+date), step == null ? 1 : Math.floor(step)), date;
-      };
-
-      interval.range = function(start, stop, step) {
-        var range = [], previous;
-        start = interval.ceil(start);
-        step = step == null ? 1 : Math.floor(step);
-        if (!(start < stop) || !(step > 0)) return range; // also handles Invalid Date
-        do range.push(previous = new Date(+start)), offseti(start, step), floori(start);
-        while (previous < start && start < stop);
-        return range;
-      };
-
-      interval.filter = function(test) {
-        return newInterval$1(function(date) {
-          if (date >= date) while (floori(date), !test(date)) date.setTime(date - 1);
-        }, function(date, step) {
-          if (date >= date) {
-            if (step < 0) while (++step <= 0) {
-              while (offseti(date, -1), !test(date)) {} // eslint-disable-line no-empty
-            } else while (--step >= 0) {
-              while (offseti(date, +1), !test(date)) {} // eslint-disable-line no-empty
-            }
-          }
-        });
-      };
-
-      if (count) {
-        interval.count = function(start, end) {
-          t0$1.setTime(+start), t1$1.setTime(+end);
-          floori(t0$1), floori(t1$1);
-          return Math.floor(count(t0$1, t1$1));
-        };
-
-        interval.every = function(step) {
-          step = Math.floor(step);
-          return !isFinite(step) || !(step > 0) ? null
-              : !(step > 1) ? interval
-              : interval.filter(field
-                  ? function(d) { return field(d) % step === 0; }
-                  : function(d) { return interval.count(0, d) % step === 0; });
-        };
-      }
-
-      return interval;
-    }
-
-    const durationSecond$1 = 1000;
-    const durationMinute$1 = durationSecond$1 * 60;
-    const durationHour$1 = durationMinute$1 * 60;
-    const durationDay$1 = durationHour$1 * 24;
-    const durationWeek$1 = durationDay$1 * 7;
-
-    var day$1 = newInterval$1(
-      date => date.setHours(0, 0, 0, 0),
-      (date, step) => date.setDate(date.getDate() + step),
-      (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute$1) / durationDay$1,
-      date => date.getDate() - 1
-    );
-
-    function weekday$1(i) {
-      return newInterval$1(function(date) {
-        date.setDate(date.getDate() - (date.getDay() + 7 - i) % 7);
-        date.setHours(0, 0, 0, 0);
-      }, function(date, step) {
-        date.setDate(date.getDate() + step * 7);
-      }, function(start, end) {
-        return (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute$1) / durationWeek$1;
-      });
-    }
-
-    var sunday$1 = weekday$1(0);
-    var monday$1 = weekday$1(1);
-    var tuesday$1 = weekday$1(2);
-    var wednesday$1 = weekday$1(3);
-    var thursday$1 = weekday$1(4);
-    var friday$1 = weekday$1(5);
-    var saturday$1 = weekday$1(6);
-
-    var year$1 = newInterval$1(function(date) {
-      date.setMonth(0, 1);
-      date.setHours(0, 0, 0, 0);
-    }, function(date, step) {
-      date.setFullYear(date.getFullYear() + step);
-    }, function(start, end) {
-      return end.getFullYear() - start.getFullYear();
-    }, function(date) {
-      return date.getFullYear();
-    });
-
-    // An optimized implementation for this simple case.
-    year$1.every = function(k) {
-      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval$1(function(date) {
-        date.setFullYear(Math.floor(date.getFullYear() / k) * k);
-        date.setMonth(0, 1);
-        date.setHours(0, 0, 0, 0);
-      }, function(date, step) {
-        date.setFullYear(date.getFullYear() + step * k);
-      });
-    };
-
-    var utcDay$1 = newInterval$1(function(date) {
-      date.setUTCHours(0, 0, 0, 0);
-    }, function(date, step) {
-      date.setUTCDate(date.getUTCDate() + step);
-    }, function(start, end) {
-      return (end - start) / durationDay$1;
-    }, function(date) {
-      return date.getUTCDate() - 1;
-    });
-
-    function utcWeekday$1(i) {
-      return newInterval$1(function(date) {
-        date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 7 - i) % 7);
-        date.setUTCHours(0, 0, 0, 0);
-      }, function(date, step) {
-        date.setUTCDate(date.getUTCDate() + step * 7);
-      }, function(start, end) {
-        return (end - start) / durationWeek$1;
-      });
-    }
-
-    var utcSunday$1 = utcWeekday$1(0);
-    var utcMonday$1 = utcWeekday$1(1);
-    var utcTuesday$1 = utcWeekday$1(2);
-    var utcWednesday$1 = utcWeekday$1(3);
-    var utcThursday$1 = utcWeekday$1(4);
-    var utcFriday$1 = utcWeekday$1(5);
-    var utcSaturday$1 = utcWeekday$1(6);
-
-    var utcYear$1 = newInterval$1(function(date) {
-      date.setUTCMonth(0, 1);
-      date.setUTCHours(0, 0, 0, 0);
-    }, function(date, step) {
-      date.setUTCFullYear(date.getUTCFullYear() + step);
-    }, function(start, end) {
-      return end.getUTCFullYear() - start.getUTCFullYear();
-    }, function(date) {
-      return date.getUTCFullYear();
-    });
-
-    // An optimized implementation for this simple case.
-    utcYear$1.every = function(k) {
-      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval$1(function(date) {
-        date.setUTCFullYear(Math.floor(date.getUTCFullYear() / k) * k);
-        date.setUTCMonth(0, 1);
-        date.setUTCHours(0, 0, 0, 0);
-      }, function(date, step) {
-        date.setUTCFullYear(date.getUTCFullYear() + step * k);
-      });
-    };
+    const [utcTicks, utcTickInterval] = ticker(utcYear, utcMonth, utcSunday, unixDay, utcHour, utcMinute);
+    const [timeTicks, timeTickInterval] = ticker(timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute);
 
     function localDate(d) {
       if (0 <= d.y && d.y < 100) {
@@ -4126,15 +3959,15 @@ var app = (function () {
             if (!("w" in d)) d.w = 1;
             if ("Z" in d) {
               week = utcDate(newDate(d.y, 0, 1)), day = week.getUTCDay();
-              week = day > 4 || day === 0 ? utcMonday$1.ceil(week) : utcMonday$1(week);
-              week = utcDay$1.offset(week, (d.V - 1) * 7);
+              week = day > 4 || day === 0 ? utcMonday.ceil(week) : utcMonday(week);
+              week = utcDay.offset(week, (d.V - 1) * 7);
               d.y = week.getUTCFullYear();
               d.m = week.getUTCMonth();
               d.d = week.getUTCDate() + (d.w + 6) % 7;
             } else {
               week = localDate(newDate(d.y, 0, 1)), day = week.getDay();
-              week = day > 4 || day === 0 ? monday$1.ceil(week) : monday$1(week);
-              week = day$1.offset(week, (d.V - 1) * 7);
+              week = day > 4 || day === 0 ? timeMonday.ceil(week) : timeMonday(week);
+              week = timeDay.offset(week, (d.V - 1) * 7);
               d.y = week.getFullYear();
               d.m = week.getMonth();
               d.d = week.getDate() + (d.w + 6) % 7;
@@ -4427,7 +4260,7 @@ var app = (function () {
     }
 
     function formatDayOfYear(d, p) {
-      return pad(1 + day$1.count(year$1(d), d), p, 3);
+      return pad(1 + timeDay.count(timeYear(d), d), p, 3);
     }
 
     function formatMilliseconds(d, p) {
@@ -4456,17 +4289,17 @@ var app = (function () {
     }
 
     function formatWeekNumberSunday(d, p) {
-      return pad(sunday$1.count(year$1(d) - 1, d), p, 2);
+      return pad(timeSunday.count(timeYear(d) - 1, d), p, 2);
     }
 
     function dISO(d) {
       var day = d.getDay();
-      return (day >= 4 || day === 0) ? thursday$1(d) : thursday$1.ceil(d);
+      return (day >= 4 || day === 0) ? timeThursday(d) : timeThursday.ceil(d);
     }
 
     function formatWeekNumberISO(d, p) {
       d = dISO(d);
-      return pad(thursday$1.count(year$1(d), d) + (year$1(d).getDay() === 4), p, 2);
+      return pad(timeThursday.count(timeYear(d), d) + (timeYear(d).getDay() === 4), p, 2);
     }
 
     function formatWeekdayNumberSunday(d) {
@@ -4474,7 +4307,7 @@ var app = (function () {
     }
 
     function formatWeekNumberMonday(d, p) {
-      return pad(monday$1.count(year$1(d) - 1, d), p, 2);
+      return pad(timeMonday.count(timeYear(d) - 1, d), p, 2);
     }
 
     function formatYear(d, p) {
@@ -4492,7 +4325,7 @@ var app = (function () {
 
     function formatFullYearISO(d, p) {
       var day = d.getDay();
-      d = (day >= 4 || day === 0) ? thursday$1(d) : thursday$1.ceil(d);
+      d = (day >= 4 || day === 0) ? timeThursday(d) : timeThursday.ceil(d);
       return pad(d.getFullYear() % 10000, p, 4);
     }
 
@@ -4516,7 +4349,7 @@ var app = (function () {
     }
 
     function formatUTCDayOfYear(d, p) {
-      return pad(1 + utcDay$1.count(utcYear$1(d), d), p, 3);
+      return pad(1 + utcDay.count(utcYear(d), d), p, 3);
     }
 
     function formatUTCMilliseconds(d, p) {
@@ -4545,17 +4378,17 @@ var app = (function () {
     }
 
     function formatUTCWeekNumberSunday(d, p) {
-      return pad(utcSunday$1.count(utcYear$1(d) - 1, d), p, 2);
+      return pad(utcSunday.count(utcYear(d) - 1, d), p, 2);
     }
 
     function UTCdISO(d) {
       var day = d.getUTCDay();
-      return (day >= 4 || day === 0) ? utcThursday$1(d) : utcThursday$1.ceil(d);
+      return (day >= 4 || day === 0) ? utcThursday(d) : utcThursday.ceil(d);
     }
 
     function formatUTCWeekNumberISO(d, p) {
       d = UTCdISO(d);
-      return pad(utcThursday$1.count(utcYear$1(d), d) + (utcYear$1(d).getUTCDay() === 4), p, 2);
+      return pad(utcThursday.count(utcYear(d), d) + (utcYear(d).getUTCDay() === 4), p, 2);
     }
 
     function formatUTCWeekdayNumberSunday(d) {
@@ -4563,7 +4396,7 @@ var app = (function () {
     }
 
     function formatUTCWeekNumberMonday(d, p) {
-      return pad(utcMonday$1.count(utcYear$1(d) - 1, d), p, 2);
+      return pad(utcMonday.count(utcYear(d) - 1, d), p, 2);
     }
 
     function formatUTCYear(d, p) {
@@ -4581,7 +4414,7 @@ var app = (function () {
 
     function formatUTCFullYearISO(d, p) {
       var day = d.getUTCDay();
-      d = (day >= 4 || day === 0) ? utcThursday$1(d) : utcThursday$1.ceil(d);
+      d = (day >= 4 || day === 0) ? utcThursday(d) : utcThursday.ceil(d);
       return pad(d.getUTCFullYear() % 10000, p, 4);
     }
 
@@ -4690,7 +4523,7 @@ var app = (function () {
     }
 
     function time() {
-      return initRange.apply(calendar(timeTicks, timeTickInterval, year, month, sunday, day, hour, minute, second, timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
+      return initRange.apply(calendar(timeTicks, timeTickInterval, timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute, second, timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
     }
 
     function utcTime() {
@@ -7192,11 +7025,11 @@ var app = (function () {
     const msDay = 864e5;
     const msWeek = 6048e5;
 
-    const t0$2 = new Date();
-    const t1$2 = new Date();
+    const t0$1 = new Date();
+    const t1$1 = new Date();
     const t = d => (
-      t0$2.setTime(typeof d === 'string' ? parseIsoDate(d) : d),
-      t0$2
+      t0$1.setTime(typeof d === 'string' ? parseIsoDate(d) : d),
+      t0$1
     );
 
     /**
@@ -7252,47 +7085,47 @@ var app = (function () {
     }
 
     function dayofyear(date) {
-      t1$2.setTime(+date);
-      t1$2.setHours(0, 0, 0, 0);
-      t0$2.setTime(+t1$2);
-      t0$2.setMonth(0);
-      t0$2.setDate(1);
-      const tz = (t1$2.getTimezoneOffset() - t0$2.getTimezoneOffset()) * msMinute;
-      return Math.floor(1 + ((t1$2 - t0$2) - tz) / msDay);
+      t1$1.setTime(+date);
+      t1$1.setHours(0, 0, 0, 0);
+      t0$1.setTime(+t1$1);
+      t0$1.setMonth(0);
+      t0$1.setDate(1);
+      const tz = (t1$1.getTimezoneOffset() - t0$1.getTimezoneOffset()) * msMinute;
+      return Math.floor(1 + ((t1$1 - t0$1) - tz) / msDay);
     }
 
     function utcdayofyear(date) {
-      t1$2.setTime(+date);
-      t1$2.setUTCHours(0, 0, 0, 0);
-      const t0 = Date.UTC(t1$2.getUTCFullYear(), 0, 1);
-      return Math.floor(1 + (t1$2 - t0) / msDay);
+      t1$1.setTime(+date);
+      t1$1.setUTCHours(0, 0, 0, 0);
+      const t0 = Date.UTC(t1$1.getUTCFullYear(), 0, 1);
+      return Math.floor(1 + (t1$1 - t0) / msDay);
     }
 
     function week(date, firstday) {
       const i = firstday || 0;
-      t1$2.setTime(+date);
-      t1$2.setDate(t1$2.getDate() - (t1$2.getDay() + 7 - i) % 7);
-      t1$2.setHours(0, 0, 0, 0);
-      t0$2.setTime(+date);
-      t0$2.setMonth(0);
-      t0$2.setDate(1);
-      t0$2.setDate(1 - (t0$2.getDay() + 7 - i) % 7);
-      t0$2.setHours(0, 0, 0, 0);
-      const tz = (t1$2.getTimezoneOffset() - t0$2.getTimezoneOffset()) * msMinute;
-      return Math.floor((1 + (t1$2 - t0$2) - tz) / msWeek);
+      t1$1.setTime(+date);
+      t1$1.setDate(t1$1.getDate() - (t1$1.getDay() + 7 - i) % 7);
+      t1$1.setHours(0, 0, 0, 0);
+      t0$1.setTime(+date);
+      t0$1.setMonth(0);
+      t0$1.setDate(1);
+      t0$1.setDate(1 - (t0$1.getDay() + 7 - i) % 7);
+      t0$1.setHours(0, 0, 0, 0);
+      const tz = (t1$1.getTimezoneOffset() - t0$1.getTimezoneOffset()) * msMinute;
+      return Math.floor((1 + (t1$1 - t0$1) - tz) / msWeek);
     }
 
     function utcweek(date, firstday) {
       const i = firstday || 0;
-      t1$2.setTime(+date);
-      t1$2.setUTCDate(t1$2.getUTCDate() - (t1$2.getUTCDay() + 7 - i) % 7);
-      t1$2.setUTCHours(0, 0, 0, 0);
-      t0$2.setTime(+date);
-      t0$2.setUTCMonth(0);
-      t0$2.setUTCDate(1);
-      t0$2.setUTCDate(1 - (t0$2.getUTCDay() + 7 - i) % 7);
-      t0$2.setUTCHours(0, 0, 0, 0);
-      return Math.floor((1 + (t1$2 - t0$2)) / msWeek);
+      t1$1.setTime(+date);
+      t1$1.setUTCDate(t1$1.getUTCDate() - (t1$1.getUTCDay() + 7 - i) % 7);
+      t1$1.setUTCHours(0, 0, 0, 0);
+      t0$1.setTime(+date);
+      t0$1.setUTCMonth(0);
+      t0$1.setUTCDate(1);
+      t0$1.setUTCDate(1 - (t0$1.getUTCDay() + 7 - i) % 7);
+      t0$1.setUTCHours(0, 0, 0, 0);
+      return Math.floor((1 + (t1$1 - t0$1)) / msWeek);
     }
 
     var date$2 = {
@@ -34537,7 +34370,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			path = svg_element("path");
     			attr_dev(path, "d", path_d_value = /*areaPath*/ ctx[2](/*indData*/ ctx[9]));
     			attr_dev(path, "fill", path_fill_value = schemeCategory10[/*i*/ ctx[11]]);
-    			add_location(path, file$3, 78, 16, 2559);
+    			add_location(path, file$3, 78, 16, 2560);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, path, anchor);
@@ -34587,15 +34420,15 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     				each_blocks[i].c();
     			}
 
-    			add_location(h3, file$3, 70, 4, 2302);
+    			add_location(h3, file$3, 70, 4, 2303);
     			attr_dev(g, "class", "area-paths");
-    			add_location(g, file$3, 76, 8, 2473);
+    			add_location(g, file$3, 76, 8, 2474);
     			attr_dev(svg, "viewBox", svg_viewBox_value = "0 0 " + (width - /*margin*/ ctx[0].right - /*margin*/ ctx[0].left) + " " + height);
     			attr_dev(svg, "width", width);
     			attr_dev(svg, "height", height);
-    			add_location(svg, file$3, 71, 4, 2348);
+    			add_location(svg, file$3, 71, 4, 2349);
     			attr_dev(div, "class", "area-chart svelte-19nw5dk");
-    			add_location(div, file$3, 69, 0, 2272);
+    			add_location(div, file$3, 69, 0, 2273);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
