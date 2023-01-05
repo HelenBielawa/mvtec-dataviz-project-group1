@@ -1,12 +1,10 @@
 <script>
     import * as aq from "arquero";
     import ffRenData from "../data/ffRenData.json"
-    import locale from '@reuters-graphics/d3-locale';
-    import weather from '../data/weather.json';
-    import {area, curveStep, stack} from 'd3-shape';
-	import {scaleTime, scaleLinear, scaleUtc} from 'd3-scale';
-	import {max, extent, bisector} from 'd3-array'
-    import {schemeCategory10} from "d3-scale-chromatic"
+    import {area, stack} from 'd3-shape';
+	import {scaleLinear, scaleUtc} from 'd3-scale';
+	import {max, extent} from 'd3-array'
+    import {schemeCategory10} from "d3-scale-chromatic";
 
     const keys = Object.keys(ffRenData[0])
     const indicators = keys.slice(1)
