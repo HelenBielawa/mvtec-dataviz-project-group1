@@ -8,6 +8,7 @@
 
 
     export let filter;
+    
     const height = 500
     const width = 700
     const margin = { top: 20, right: 20, bottom: 20, left: 50 }
@@ -15,19 +16,18 @@
     const innerHeight = height - margin.top - margin.bottom;
     const innerWidth = width - margin.left - margin.right;
 
-    const data = RUdata.filter(d => d.Fossil_Fuel == filter)
-    const countries = [...new Set(data.map(d => d.Country))]
-    console.log(countries)
-    const xScale = scaleLinear()
+    $: data = RUdata.filter(d => d.Fossil_Fuel == filter)
+    $: countries = [...new Set(data.map(d => d.Country))]
+
+    $: xScale = scaleLinear()
         .domain([1990, 2021])
         .range([margin.left, width - margin.right])
 
-    const yScale = scaleLinear()
+    $: yScale = scaleLinear()
         .domain([0, 100])
         .range([height - margin.bottom, margin.top])
-    console.log(data.map(d=>d.Year)[0])
 
-    const linePath = (keyFF, keyEcon) => line()
+    $: linePath = (keyFF, keyEcon) => line()
         .curve(curveBasis)
         .x(d => xScale(d[keyFF]))
         .y(d => yScale(d[keyEcon]))
@@ -35,14 +35,14 @@
 </script>
 
 <div class="imports-line">
-    <h3>Do what degree to countries rely on gas imports from Russia?</h3>
+    <h3>Do what degree to countries rely on {filter} imports from Russia?</h3>
     <svg
         {width}
         {height}
         viewBox={[0, 0, width, height]}>
         <g>
             <!--use Svelte html looping to iterate over all ticks and create axis-->
-        {#each xScale.ticks() as tickValue}
+        {#each [1990, 1995, 2000, 2005, 2010, 2015, 2020] as tickValue}
             <!--move along the x axis according to calculation by xScale, move 0 at yAxis-->
             <g transform={`translate(${xScale(tickValue)},0)`}>
             <line y2={innerHeight} stroke="black" />
@@ -51,8 +51,6 @@
             </text>
             </g>
         {/each}
-
-
 
         {#each countries as conti, i}
             <path

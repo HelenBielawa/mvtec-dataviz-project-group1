@@ -8,35 +8,36 @@
   import RussianImportsChart from "./components/RussianImportsChart.svelte";
   import ShowValue from "./components/ShowValue.svelte";
 
-	var importsFilter = "Natural Gas";
+	let importFilter = "Natural Gas";
 	function changeImportFilter(choice) {
         if (choice == "Natural Gas") {
-            importsFilter = "Natural Gas";
+            importFilter = "Natural Gas";
         } else if (choice == "Coal"){
-            value = "Coal";
+            importFilter = "Coal";
+			console.log("Coal")
         } else if (choice == "Oil"){
-            value = "Oil";
+            importFilter = "Oil";
+			console.log("Oil")
         }
     }
 </script>
 
+<!-- svelte-ignore missing-declaration -->
 <main>
 	<h1>
 		Fossil Fuel Production
 	</h1>
 
 	Here we can include our texts, styles and visuals.
-	TEST CHANGE
 
 	<FfRenChart />
 	<TrendLinesChart />
 
-	<button id="1" onclick="changeVal('Natural Gas')">Gas</button>
-	<button id="2" onclick="changeVal('Coal')">Coal</button>
-	<button id="3" onclick="changeVal('Oil')">Oil</button>
-	You chose 	<ShowValue name="Fossil Fuel" value={importsFilter}/>
+	<button on:click={() => changeImportFilter("Natural Gas")}>Gas</button>
+	<button on:click={() => changeImportFilter("Coal")}>Coal</button>
+	<button on:click={() => changeImportFilter("Oil")}>Oil</button>
 
-	$<RussianImportsChart filter = {importsFilter}/>
+	<RussianImportsChart filter = {importFilter}/>
 
 </main>
 
