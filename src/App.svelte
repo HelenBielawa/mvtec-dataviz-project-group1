@@ -1,9 +1,8 @@
 <script>
-  import { onMount } from "svelte";
-  //import RussData from "./data/Reliance on Russian imports.csv";
-  //import Russ_Imports_Multiline from "./BarChart.svelte";
-  import FFRenChart from "./components/FFRenChart.svelte";
-
+	import { onMount } from "svelte";
+ 	import TestChart from "./components/charts/TestChart.svelte";
+	import FFRenChart from "./components/FFRenChart.svelte";
+	const RussData = [{Year: "2000", Percentage: 80}, {Year: "2001", Percentage: 50}, {Year: "2002", Percentage: 30}]
 </script>
 
 <main>
@@ -11,8 +10,9 @@
 		Fossil Fuel Production
 	</h1>
 
-Here we can include our texts, styles and visuals.
-TEST CHANGE
+	<p>Here we can include our texts, styles and visuals.</p>
+
+	<TestChart data = {RussData}/>
 
 	<FFRenChart />
 

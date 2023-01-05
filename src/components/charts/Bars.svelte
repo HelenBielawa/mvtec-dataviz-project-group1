@@ -14,6 +14,7 @@
 	export let layout;
 
 	let datum, width, height;
+	height = 120;
     $: barwidth = (width - margin.left - margin.right) / data.length;
 		
 	$: x = scaleBand()
