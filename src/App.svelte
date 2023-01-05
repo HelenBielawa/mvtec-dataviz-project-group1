@@ -3,10 +3,21 @@
  // import RussData from "./data/Reliance on Russian imports.csv";
   //import Russ_Imports_Multiline from "./BarChart.svelte";
   import Line from "./components/charts/Line.svelte";
-  import FfRenChart from "./components/ffRenChart.svelte";
+  import FfRenChart from "./components/FFRenChart.svelte";
   import TrendLinesChart from "./components/TrendLinesChart.svelte";
-	let RussData = [{Year: 2000, Percentage: 80}, {Year: 2001, Percentage: 50}, {Year: 2002, Percentage: 30}]
-	console.log(RussData)
+  import RussianImportsChart from "./components/RussianImportsChart.svelte";
+  import ShowValue from "./components/ShowValue.svelte";
+
+	var importsFilter = "Natural Gas";
+	function changeImportFilter(choice) {
+        if (choice == "Natural Gas") {
+            importsFilter = "Natural Gas";
+        } else if (choice == "Coal"){
+            value = "Coal";
+        } else if (choice == "Oil"){
+            value = "Oil";
+        }
+    }
 </script>
 
 <main>
@@ -16,14 +27,17 @@
 
 	Here we can include our texts, styles and visuals.
 	TEST CHANGE
-	<Line data={RussData}
-	key={{x: RussData["Year"], y: RussData["Percentage"]}}
-	color="blue"
-	title="How much of a countries fossil fuels come from Russia?"
-	desc="Data from xy"
-	layout="fossil fuels"/>
+
 	<FfRenChart />
 	<TrendLinesChart />
+
+	<button id="1" onclick="changeVal('Natural Gas')">Gas</button>
+	<button id="2" onclick="changeVal('Coal')">Coal</button>
+	<button id="3" onclick="changeVal('Oil')">Oil</button>
+	You chose 	<ShowValue name="Fossil Fuel" value={importsFilter}/>
+
+	$<RussianImportsChart filter = {importsFilter}/>
+
 </main>
 
 <style>
