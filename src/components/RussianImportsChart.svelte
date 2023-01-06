@@ -58,7 +58,7 @@
 </script>
 
 <div class="imports-line">
-    <h3>Do what degree to countries rely on {filter} imports from Russia?</h3>
+   <!-- <h3>Do what degree to countries rely on {filter} imports from Russia?</h3>-->
     <svg
         {width}
         {height}

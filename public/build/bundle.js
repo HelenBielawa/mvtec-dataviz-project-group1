@@ -61091,15 +61091,15 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			line_1 = svg_element("line");
     			text_1 = svg_element("text");
     			t = text(/*tickValue*/ ctx[21]);
-    			attr_dev(line_1, "y2", /*innerHeight*/ ctx[11]);
+    			attr_dev(line_1, "y2", /*innerHeight*/ ctx[10]);
     			attr_dev(line_1, "stroke", "black");
-    			add_location(line_1, file$5, 70, 12, 2043);
+    			add_location(line_1, file$5, 70, 12, 2050);
     			attr_dev(text_1, "text-anchor", "middle");
     			attr_dev(text_1, "dy", "1.71em");
-    			attr_dev(text_1, "y", /*innerHeight*/ ctx[11]);
-    			add_location(text_1, file$5, 71, 12, 2096);
-    			attr_dev(g, "transform", g_transform_value = `translate(${/*xScale*/ ctx[2](/*tickValue*/ ctx[21])},0)`);
-    			add_location(g, file$5, 69, 12, 1979);
+    			attr_dev(text_1, "y", /*innerHeight*/ ctx[10]);
+    			add_location(text_1, file$5, 71, 12, 2103);
+    			attr_dev(g, "transform", g_transform_value = `translate(${/*xScale*/ ctx[1](/*tickValue*/ ctx[21])},0)`);
+    			add_location(g, file$5, 69, 12, 1986);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, g, anchor);
@@ -61108,7 +61108,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			append_dev(text_1, t);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*xScale*/ 4 && g_transform_value !== (g_transform_value = `translate(${/*xScale*/ ctx[2](/*tickValue*/ ctx[21])},0)`)) {
+    			if (dirty & /*xScale*/ 2 && g_transform_value !== (g_transform_value = `translate(${/*xScale*/ ctx[1](/*tickValue*/ ctx[21])},0)`)) {
     				attr_dev(g, "transform", g_transform_value);
     			}
     		},
@@ -61144,10 +61144,10 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			t = text(t_value);
     			attr_dev(text_1, "text-anchor", "end");
     			attr_dev(text_1, "dy", ".71em");
-    			attr_dev(text_1, "x", text_1_x_value = /*margin*/ ctx[10].left);
-    			add_location(text_1, file$5, 80, 16, 2386);
-    			attr_dev(g, "transform", g_transform_value = `translate(0,${/*yScale*/ ctx[3](/*tickValue*/ ctx[21])})`);
-    			add_location(g, file$5, 79, 16, 2318);
+    			attr_dev(text_1, "x", text_1_x_value = /*margin*/ ctx[9].left);
+    			add_location(text_1, file$5, 80, 16, 2393);
+    			attr_dev(g, "transform", g_transform_value = `translate(0,${/*yScale*/ ctx[2](/*tickValue*/ ctx[21])})`);
+    			add_location(g, file$5, 79, 16, 2325);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, g, anchor);
@@ -61155,9 +61155,9 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			append_dev(text_1, t);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*yScale*/ 8 && t_value !== (t_value = /*tickValue*/ ctx[21] + "")) set_data_dev(t, t_value);
+    			if (dirty & /*yScale*/ 4 && t_value !== (t_value = /*tickValue*/ ctx[21] + "")) set_data_dev(t, t_value);
 
-    			if (dirty & /*yScale*/ 8 && g_transform_value !== (g_transform_value = `translate(0,${/*yScale*/ ctx[3](/*tickValue*/ ctx[21])})`)) {
+    			if (dirty & /*yScale*/ 4 && g_transform_value !== (g_transform_value = `translate(0,${/*yScale*/ ctx[2](/*tickValue*/ ctx[21])})`)) {
     				attr_dev(g, "transform", g_transform_value);
     			}
     		},
@@ -61249,17 +61249,17 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			path = svg_element("path");
     			text_1 = svg_element("text");
     			t = text(t_value);
-    			attr_dev(path, "d", path_d_value = /*linePath*/ ctx[9]("Year", "Percentage")(/*data*/ ctx[1].filter(func)));
-    			attr_dev(path, "stroke", path_stroke_value = /*colorScale*/ ctx[7](/*country*/ ctx[18]));
+    			attr_dev(path, "d", path_d_value = /*linePath*/ ctx[8]("Year", "Percentage")(/*data*/ ctx[0].filter(func)));
+    			attr_dev(path, "stroke", path_stroke_value = /*colorScale*/ ctx[6](/*country*/ ctx[18]));
     			attr_dev(path, "fill", "none");
-    			attr_dev(path, "stroke-width", path_stroke_width_value = /*strokeScale*/ ctx[8](/*country*/ ctx[18]));
-    			add_location(path, file$5, 90, 12, 2789);
+    			attr_dev(path, "stroke-width", path_stroke_width_value = /*strokeScale*/ ctx[7](/*country*/ ctx[18]));
+    			add_location(path, file$5, 90, 12, 2796);
     			attr_dev(text_1, "text-anchor", "end");
-    			attr_dev(text_1, "x", text_1_x_value = width$2 - /*margin*/ ctx[10].right);
-    			attr_dev(text_1, "y", text_1_y_value = /*yScale*/ ctx[3](/*data*/ ctx[1].filter(func_1)[0].Percentage));
-    			attr_dev(text_1, "color", /*colour*/ ctx[4]);
-    			attr_dev(text_1, "opacity", /*opacity*/ ctx[5]);
-    			add_location(text_1, file$5, 97, 12, 3040);
+    			attr_dev(text_1, "x", text_1_x_value = width$2 - /*margin*/ ctx[9].right);
+    			attr_dev(text_1, "y", text_1_y_value = /*yScale*/ ctx[2](/*data*/ ctx[0].filter(func_1)[0].Percentage));
+    			attr_dev(text_1, "color", /*colour*/ ctx[3]);
+    			attr_dev(text_1, "opacity", /*opacity*/ ctx[4]);
+    			add_location(text_1, file$5, 97, 12, 3047);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, path, anchor);
@@ -61268,8 +61268,8 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(text_1, "mouseover", /*handleMouseOver*/ ctx[12], false, false, false),
-    					listen_dev(text_1, "mouseout", /*handleMouseOut*/ ctx[13], false, false, false)
+    					listen_dev(text_1, "mouseover", /*handleMouseOver*/ ctx[11], false, false, false),
+    					listen_dev(text_1, "mouseout", /*handleMouseOut*/ ctx[12], false, false, false)
     				];
 
     				mounted = true;
@@ -61278,30 +61278,30 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     		p: function update(new_ctx, dirty) {
     			ctx = new_ctx;
 
-    			if (dirty & /*linePath, data, countries*/ 578 && path_d_value !== (path_d_value = /*linePath*/ ctx[9]("Year", "Percentage")(/*data*/ ctx[1].filter(func)))) {
+    			if (dirty & /*linePath, data, countries*/ 289 && path_d_value !== (path_d_value = /*linePath*/ ctx[8]("Year", "Percentage")(/*data*/ ctx[0].filter(func)))) {
     				attr_dev(path, "d", path_d_value);
     			}
 
-    			if (dirty & /*colorScale, countries*/ 192 && path_stroke_value !== (path_stroke_value = /*colorScale*/ ctx[7](/*country*/ ctx[18]))) {
+    			if (dirty & /*colorScale, countries*/ 96 && path_stroke_value !== (path_stroke_value = /*colorScale*/ ctx[6](/*country*/ ctx[18]))) {
     				attr_dev(path, "stroke", path_stroke_value);
     			}
 
-    			if (dirty & /*strokeScale, countries*/ 320 && path_stroke_width_value !== (path_stroke_width_value = /*strokeScale*/ ctx[8](/*country*/ ctx[18]))) {
+    			if (dirty & /*strokeScale, countries*/ 160 && path_stroke_width_value !== (path_stroke_width_value = /*strokeScale*/ ctx[7](/*country*/ ctx[18]))) {
     				attr_dev(path, "stroke-width", path_stroke_width_value);
     			}
 
-    			if (dirty & /*countries*/ 64 && t_value !== (t_value = /*country*/ ctx[18] + "")) set_data_dev(t, t_value);
+    			if (dirty & /*countries*/ 32 && t_value !== (t_value = /*country*/ ctx[18] + "")) set_data_dev(t, t_value);
 
-    			if (dirty & /*yScale, data, countries*/ 74 && text_1_y_value !== (text_1_y_value = /*yScale*/ ctx[3](/*data*/ ctx[1].filter(func_1)[0].Percentage))) {
+    			if (dirty & /*yScale, data, countries*/ 37 && text_1_y_value !== (text_1_y_value = /*yScale*/ ctx[2](/*data*/ ctx[0].filter(func_1)[0].Percentage))) {
     				attr_dev(text_1, "y", text_1_y_value);
     			}
 
-    			if (dirty & /*colour*/ 16) {
-    				attr_dev(text_1, "color", /*colour*/ ctx[4]);
+    			if (dirty & /*colour*/ 8) {
+    				attr_dev(text_1, "color", /*colour*/ ctx[3]);
     			}
 
-    			if (dirty & /*opacity*/ 32) {
-    				attr_dev(text_1, "opacity", /*opacity*/ ctx[5]);
+    			if (dirty & /*opacity*/ 16) {
+    				attr_dev(text_1, "opacity", /*opacity*/ ctx[4]);
     			}
     		},
     		d: function destroy(detaching) {
@@ -61325,16 +61325,11 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
 
     function create_fragment$5(ctx) {
     	let div;
-    	let h3;
-    	let t0;
-    	let t1;
-    	let t2;
-    	let t3;
     	let svg;
     	let g;
     	let each0_anchor;
     	let text_1;
-    	let t4;
+    	let t;
     	let text_1_x_value;
     	let text_1_y_value;
     	let svg_viewBox_value;
@@ -61346,7 +61341,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     		each_blocks_2[i] = create_each_block_2(get_each_context_2(ctx, each_value_2, i));
     	}
 
-    	let each_value_1 = /*yScale*/ ctx[3].ticks();
+    	let each_value_1 = /*yScale*/ ctx[2].ticks();
     	validate_each_argument(each_value_1);
     	let each_blocks_1 = [];
 
@@ -61354,7 +61349,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     		each_blocks_1[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
     	}
 
-    	let each_value = /*countries*/ ctx[6];
+    	let each_value = /*countries*/ ctx[5];
     	validate_each_argument(each_value);
     	let each_blocks = [];
 
@@ -61365,11 +61360,6 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	const block = {
     		c: function create() {
     			div = element("div");
-    			h3 = element("h3");
-    			t0 = text("Do what degree to countries rely on ");
-    			t1 = text(/*filter*/ ctx[0]);
-    			t2 = text(" imports from Russia?");
-    			t3 = space();
     			svg = svg_element("svg");
     			g = svg_element("g");
 
@@ -61384,23 +61374,22 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			}
 
     			text_1 = svg_element("text");
-    			t4 = text("%");
+    			t = text("%");
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].c();
     			}
 
-    			add_location(h3, file$5, 60, 4, 1547);
     			attr_dev(text_1, "text-anchor", "end");
     			attr_dev(text_1, "dy", ".71em");
-    			attr_dev(text_1, "x", text_1_x_value = /*margin*/ ctx[10].left);
-    			attr_dev(text_1, "y", text_1_y_value = /*margin*/ ctx[10].top);
-    			add_location(text_1, file$5, 87, 8, 2563);
-    			add_location(g, file$5, 65, 8, 1713);
+    			attr_dev(text_1, "x", text_1_x_value = /*margin*/ ctx[9].left);
+    			attr_dev(text_1, "y", text_1_y_value = /*margin*/ ctx[9].top);
+    			add_location(text_1, file$5, 87, 8, 2570);
+    			add_location(g, file$5, 65, 8, 1720);
     			attr_dev(svg, "width", width$2);
     			attr_dev(svg, "height", height$2);
     			attr_dev(svg, "viewBox", svg_viewBox_value = [0, 0, width$2, height$2]);
-    			add_location(svg, file$5, 61, 4, 1626);
+    			add_location(svg, file$5, 61, 4, 1633);
     			attr_dev(div, "class", "imports-line");
     			add_location(div, file$5, 59, 0, 1516);
     		},
@@ -61409,11 +61398,6 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
-    			append_dev(div, h3);
-    			append_dev(h3, t0);
-    			append_dev(h3, t1);
-    			append_dev(h3, t2);
-    			append_dev(div, t3);
     			append_dev(div, svg);
     			append_dev(svg, g);
 
@@ -61428,16 +61412,14 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			}
 
     			append_dev(g, text_1);
-    			append_dev(text_1, t4);
+    			append_dev(text_1, t);
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].m(g, null);
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*filter*/ 1) set_data_dev(t1, /*filter*/ ctx[0]);
-
-    			if (dirty & /*xScale, innerHeight*/ 2052) {
+    			if (dirty & /*xScale, innerHeight*/ 1026) {
     				each_value_2 = [1990, 1995, 2000, 2005, 2010, 2015, 2020];
     				validate_each_argument(each_value_2);
     				let i;
@@ -61459,8 +61441,8 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     				}
     			}
 
-    			if (dirty & /*yScale, margin*/ 1032) {
-    				each_value_1 = /*yScale*/ ctx[3].ticks();
+    			if (dirty & /*yScale, margin*/ 516) {
+    				each_value_1 = /*yScale*/ ctx[2].ticks();
     				validate_each_argument(each_value_1);
     				let i;
 
@@ -61483,8 +61465,8 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     				each_blocks_1.length = each_value_1.length;
     			}
 
-    			if (dirty & /*width, margin, yScale, data, countries, colour, opacity, handleMouseOver, handleMouseOut, linePath, colorScale, strokeScale*/ 14330) {
-    				each_value = /*countries*/ ctx[6];
+    			if (dirty & /*width, margin, yScale, data, countries, colour, opacity, handleMouseOver, handleMouseOut, linePath, colorScale, strokeScale*/ 7165) {
+    				each_value = /*countries*/ ctx[5];
     				validate_each_argument(each_value);
     				let i;
 
@@ -61543,13 +61525,13 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	let opacity = "0.0";
 
     	function handleMouseOver(e) {
-    		$$invalidate(4, colour = "black");
-    		$$invalidate(5, opacity = "1.0");
+    		$$invalidate(3, colour = "black");
+    		$$invalidate(4, opacity = "1.0");
     	}
 
     	function handleMouseOut(e) {
-    		$$invalidate(4, colour = "white");
-    		$$invalidate(5, opacity = "0.0");
+    		$$invalidate(3, colour = "white");
+    		$$invalidate(4, opacity = "0.0");
     	}
 
     	const writable_props = ["filter", "highlight"];
@@ -61562,7 +61544,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	const func_1 = (country, d) => d.Country === country && d.Year === 2020;
 
     	$$self.$$set = $$props => {
-    		if ("filter" in $$props) $$invalidate(0, filter = $$props.filter);
+    		if ("filter" in $$props) $$invalidate(13, filter = $$props.filter);
     		if ("highlight" in $$props) $$invalidate(14, highlight = $$props.highlight);
     	};
 
@@ -61596,17 +61578,17 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ("filter" in $$props) $$invalidate(0, filter = $$props.filter);
+    		if ("filter" in $$props) $$invalidate(13, filter = $$props.filter);
     		if ("highlight" in $$props) $$invalidate(14, highlight = $$props.highlight);
-    		if ("colour" in $$props) $$invalidate(4, colour = $$props.colour);
-    		if ("opacity" in $$props) $$invalidate(5, opacity = $$props.opacity);
-    		if ("data" in $$props) $$invalidate(1, data = $$props.data);
-    		if ("countries" in $$props) $$invalidate(6, countries = $$props.countries);
-    		if ("xScale" in $$props) $$invalidate(2, xScale = $$props.xScale);
-    		if ("yScale" in $$props) $$invalidate(3, yScale = $$props.yScale);
-    		if ("colorScale" in $$props) $$invalidate(7, colorScale = $$props.colorScale);
-    		if ("strokeScale" in $$props) $$invalidate(8, strokeScale = $$props.strokeScale);
-    		if ("linePath" in $$props) $$invalidate(9, linePath = $$props.linePath);
+    		if ("colour" in $$props) $$invalidate(3, colour = $$props.colour);
+    		if ("opacity" in $$props) $$invalidate(4, opacity = $$props.opacity);
+    		if ("data" in $$props) $$invalidate(0, data = $$props.data);
+    		if ("countries" in $$props) $$invalidate(5, countries = $$props.countries);
+    		if ("xScale" in $$props) $$invalidate(1, xScale = $$props.xScale);
+    		if ("yScale" in $$props) $$invalidate(2, yScale = $$props.yScale);
+    		if ("colorScale" in $$props) $$invalidate(6, colorScale = $$props.colorScale);
+    		if ("strokeScale" in $$props) $$invalidate(7, strokeScale = $$props.strokeScale);
+    		if ("linePath" in $$props) $$invalidate(8, linePath = $$props.linePath);
     	};
 
     	let data;
@@ -61622,20 +61604,20 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*filter*/ 1) {
-    			 $$invalidate(1, data = RUdata.filter(d => d.Fossil_Fuel == filter));
+    		if ($$self.$$.dirty & /*filter*/ 8192) {
+    			 $$invalidate(0, data = RUdata.filter(d => d.Fossil_Fuel == filter));
     		}
 
-    		if ($$self.$$.dirty & /*data*/ 2) {
-    			 $$invalidate(6, countries = [...new Set(data.map(d => d.Country))]);
+    		if ($$self.$$.dirty & /*data*/ 1) {
+    			 $$invalidate(5, countries = [...new Set(data.map(d => d.Country))]);
     		}
 
-    		if ($$self.$$.dirty & /*data*/ 2) {
-    			 $$invalidate(3, yScale = linear$1().domain([0, max(data.map(d => d.Percentage))]).range([height$2 - margin.bottom, margin.top]));
+    		if ($$self.$$.dirty & /*data*/ 1) {
+    			 $$invalidate(2, yScale = linear$1().domain([0, max(data.map(d => d.Percentage))]).range([height$2 - margin.bottom, margin.top]));
     		}
 
     		if ($$self.$$.dirty & /*highlight*/ 16384) {
-    			 $$invalidate(7, colorScale = country => {
+    			 $$invalidate(6, colorScale = country => {
     				if (country == highlight) {
     					return "blue";
     				} else {
@@ -61645,7 +61627,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     		}
 
     		if ($$self.$$.dirty & /*highlight*/ 16384) {
-    			 $$invalidate(8, strokeScale = country => {
+    			 $$invalidate(7, strokeScale = country => {
     				if (country == highlight) {
     					return 2.5;
     				} else {
@@ -61654,15 +61636,14 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			});
     		}
 
-    		if ($$self.$$.dirty & /*xScale, yScale*/ 12) {
-    			 $$invalidate(9, linePath = (keyFF, keyEcon) => line().curve(curveBasis).x(d => xScale(d[keyFF])).y(d => yScale(d[keyEcon])));
+    		if ($$self.$$.dirty & /*xScale, yScale*/ 6) {
+    			 $$invalidate(8, linePath = (keyFF, keyEcon) => line().curve(curveBasis).x(d => xScale(d[keyFF])).y(d => yScale(d[keyEcon])));
     		}
     	};
 
-    	 $$invalidate(2, xScale = linear$1().domain([1990, 2021]).range([margin.left, width$2 - margin.right]));
+    	 $$invalidate(1, xScale = linear$1().domain([1990, 2021]).range([margin.left, width$2 - margin.right]));
 
     	return [
-    		filter,
     		data,
     		xScale,
     		yScale,
@@ -61676,6 +61657,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     		innerHeight,
     		handleMouseOver,
     		handleMouseOut,
+    		filter,
     		highlight,
     		func,
     		func_1
@@ -61685,7 +61667,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     class RussianImportsChart extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$d, create_fragment$5, safe_not_equal, { filter: 0, highlight: 14 });
+    		init(this, options, instance$d, create_fragment$5, safe_not_equal, { filter: 13, highlight: 14 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -61697,7 +61679,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     		const { ctx } = this.$$;
     		const props = options.props || {};
 
-    		if (/*filter*/ ctx[0] === undefined && !("filter" in props)) {
+    		if (/*filter*/ ctx[13] === undefined && !("filter" in props)) {
     			console.warn("<RussianImportsChart> was created without expected prop 'filter'");
     		}
 
@@ -61732,22 +61714,37 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     	let main;
     	let h1;
     	let t1;
-    	let ffrenchart;
+    	let p;
     	let t2;
-    	let trendlineschart;
+    	let br0;
+    	let br1;
     	let t3;
-    	let button0;
+    	let t4;
+    	let h3;
     	let t5;
-    	let button1;
+    	let t6;
     	let t7;
+    	let t8;
+    	let button0;
+    	let t10;
+    	let button1;
+    	let t12;
     	let button2;
-    	let t9;
+    	let t14;
+    	let br2;
+    	let t15;
     	let russianimportschart;
+    	let t16;
+    	let br3;
+    	let t17;
+    	let br4;
+    	let t18;
+    	let ffrenchart;
+    	let t19;
+    	let trendlineschart;
     	let current;
     	let mounted;
     	let dispose;
-    	ffrenchart = new FFRenChart({ $$inline: true });
-    	trendlineschart = new TrendLinesChart({ $$inline: true });
 
     	russianimportschart = new RussianImportsChart({
     			props: {
@@ -61757,32 +61754,59 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			$$inline: true
     		});
 
+    	ffrenchart = new FFRenChart({ $$inline: true });
+    	trendlineschart = new TrendLinesChart({ $$inline: true });
+
     	const block = {
     		c: function create() {
     			main = element("main");
     			h1 = element("h1");
     			h1.textContent = "Fossil Fuel Production";
-    			t1 = text("\n\n\tHere we can include our texts, styles and visuals.\n\n\t");
-    			create_component(ffrenchart.$$.fragment);
-    			t2 = space();
-    			create_component(trendlineschart.$$.fragment);
-    			t3 = space();
+    			t1 = space();
+    			p = element("p");
+    			t2 = text("During the last 120 years, countries started to produce more and more fossilfuels (gas, oil and coal). But, we can also see them changing the amount of production. Why is that? We explore the data about fossil fuel production in order to find out what impacts a country to produce more or less fossil fuels. We have three hypothesises: There might be political reasons (independence from other countries), social reasons or economic benefits. We leave the topic of sustainablity out as there is another team looking deeply at that.\n\t");
+    			br0 = element("br");
+    			br1 = element("br");
+    			t3 = text("\n\tLet's start with the most recent topic: Fossil fuel production dominates public discourse in many countries at the moment, especially in Europe. The reason for that is the Russian invasion in Ukraine. The war has caused many countries to no longer want to rely on supplies from Russia. On the one hand, Russia does not seem to be a reliable economic partner anymore. On the other hand, politicians do not want to trade with Russia anymore for moral reasons.\n\tAs there are no up-to-date information about fossil fuel imports from Russia since the start of the invasion in February 2021, we have a look at the data from 1990 to 2021 - we would expect a decrease of Russian imports already after 2014 because in that year, Russia invaded the Ukrainian Crimea.");
+    			t4 = space();
+    			h3 = element("h3");
+    			t5 = text("How much do countries rely on ");
+    			t6 = text(/*importFilter*/ ctx[0]);
+    			t7 = text(" imports from Russia?");
+    			t8 = space();
     			button0 = element("button");
     			button0.textContent = "Gas";
-    			t5 = space();
+    			t10 = space();
     			button1 = element("button");
     			button1.textContent = "Coal";
-    			t7 = space();
+    			t12 = space();
     			button2 = element("button");
     			button2.textContent = "Oil";
-    			t9 = space();
+    			t14 = space();
+    			br2 = element("br");
+    			t15 = space();
     			create_component(russianimportschart.$$.fragment);
-    			attr_dev(h1, "class", "svelte-84axh6");
-    			add_location(h1, file$6, 25, 1, 854);
-    			add_location(button0, file$6, 34, 1, 984);
-    			add_location(button1, file$6, 35, 1, 1057);
-    			add_location(button2, file$6, 36, 1, 1124);
-    			attr_dev(main, "class", "svelte-84axh6");
+    			t16 = space();
+    			br3 = element("br");
+    			t17 = text("\n\tThe chart shows which percentage of the countrie's consumption of each fossil fuel is imported from Russia. We don't see a clear pattern. But, a closer look at the chart reveals that countries which are close to Russia (e.g. Estonia and Lithuania) particularly depend on Russian imports. At first sight it might seem irritating that some countries import more than 100 percent of their consumption from Russia. That is because some import more than they consume, for example because they save it.");
+    			br4 = element("br");
+    			t18 = text("\n\tWe don't see a sharp decrease of fossil fuel imports from Russia after 2014 or in the following years. From that we conclude that political independence was not an important motivation to stop importing and to start producing more. However, this might change at the moment.\n\t");
+    			create_component(ffrenchart.$$.fragment);
+    			t19 = space();
+    			create_component(trendlineschart.$$.fragment);
+    			attr_dev(h1, "class", "svelte-1f2yf0w");
+    			add_location(h1, file$6, 26, 1, 856);
+    			add_location(br0, file$6, 31, 1, 1432);
+    			add_location(br1, file$6, 31, 5, 1436);
+    			add_location(p, file$6, 29, 1, 894);
+    			add_location(h3, file$6, 35, 1, 2206);
+    			add_location(button0, file$6, 36, 1, 2282);
+    			add_location(button1, file$6, 37, 1, 2355);
+    			add_location(button2, file$6, 38, 1, 2422);
+    			add_location(br2, file$6, 39, 1, 2487);
+    			add_location(br3, file$6, 41, 1, 2563);
+    			add_location(br4, file$6, 42, 497, 3065);
+    			attr_dev(main, "class", "svelte-1f2yf0w");
     			add_location(main, file$6, 24, 0, 846);
     		},
     		l: function claim(nodes) {
@@ -61792,17 +61816,34 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			insert_dev(target, main, anchor);
     			append_dev(main, h1);
     			append_dev(main, t1);
-    			mount_component(ffrenchart, main, null);
-    			append_dev(main, t2);
-    			mount_component(trendlineschart, main, null);
-    			append_dev(main, t3);
+    			append_dev(main, p);
+    			append_dev(p, t2);
+    			append_dev(p, br0);
+    			append_dev(p, br1);
+    			append_dev(p, t3);
+    			append_dev(main, t4);
+    			append_dev(main, h3);
+    			append_dev(h3, t5);
+    			append_dev(h3, t6);
+    			append_dev(h3, t7);
+    			append_dev(main, t8);
     			append_dev(main, button0);
-    			append_dev(main, t5);
+    			append_dev(main, t10);
     			append_dev(main, button1);
-    			append_dev(main, t7);
+    			append_dev(main, t12);
     			append_dev(main, button2);
-    			append_dev(main, t9);
+    			append_dev(main, t14);
+    			append_dev(main, br2);
+    			append_dev(main, t15);
     			mount_component(russianimportschart, main, null);
+    			append_dev(main, t16);
+    			append_dev(main, br3);
+    			append_dev(main, t17);
+    			append_dev(main, br4);
+    			append_dev(main, t18);
+    			mount_component(ffrenchart, main, null);
+    			append_dev(main, t19);
+    			mount_component(trendlineschart, main, null);
     			current = true;
 
     			if (!mounted) {
@@ -61816,28 +61857,29 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     			}
     		},
     		p: function update(ctx, [dirty]) {
+    			if (!current || dirty & /*importFilter*/ 1) set_data_dev(t6, /*importFilter*/ ctx[0]);
     			const russianimportschart_changes = {};
     			if (dirty & /*importFilter*/ 1) russianimportschart_changes.filter = /*importFilter*/ ctx[0];
     			russianimportschart.$set(russianimportschart_changes);
     		},
     		i: function intro(local) {
     			if (current) return;
+    			transition_in(russianimportschart.$$.fragment, local);
     			transition_in(ffrenchart.$$.fragment, local);
     			transition_in(trendlineschart.$$.fragment, local);
-    			transition_in(russianimportschart.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
+    			transition_out(russianimportschart.$$.fragment, local);
     			transition_out(ffrenchart.$$.fragment, local);
     			transition_out(trendlineschart.$$.fragment, local);
-    			transition_out(russianimportschart.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(main);
+    			destroy_component(russianimportschart);
     			destroy_component(ffrenchart);
     			destroy_component(trendlineschart);
-    			destroy_component(russianimportschart);
     			mounted = false;
     			run_all(dispose);
     		}
