@@ -29,7 +29,7 @@
 	TEST CHANGE
 
 	<FfRenChart />
-	<TrendLinesChart />
+	<!-- <TrendLinesChart /> -->
 
 	<button id="1" onclick="changeVal('Natural Gas')">Gas</button>
 	<button id="2" onclick="changeVal('Coal')">Coal</button>
