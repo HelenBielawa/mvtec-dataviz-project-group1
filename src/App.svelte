@@ -6,7 +6,6 @@
   import FfRenChart from "./components/FFRenChart.svelte";
   import TrendLinesChart from "./components/TrendLinesChart.svelte";
   import RussianImportsChart from "./components/RussianImportsChart.svelte";
-  import ShowValue from "./components/ShowValue.svelte";
 
 	let importFilter = "Natural Gas";
 	function changeImportFilter(choice) {
@@ -37,7 +36,7 @@
 	<button on:click={() => changeImportFilter("Coal")}>Coal</button>
 	<button on:click={() => changeImportFilter("Oil")}>Oil</button>
 
-	<RussianImportsChart filter = {importFilter}/>
+	<RussianImportsChart filter = {importFilter} highlight = "Germany"/>
 
 </main>
 
