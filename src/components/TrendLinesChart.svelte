@@ -77,17 +77,32 @@
     $: xValRange = range(0, 1 + 1/5, 1/5).map(x => x.toPrecision(1))
     $: yValRange = range(0, 1 + 1/5, 1/5).map(y => y.toPrecision(1))
 
+    // Encode legend labels
+    const TWH = "Production (TWh)"
+    const PC_KWH = "Production per capita (kWh)"
+    $: energyUnit = !toggleffPercap ? TWH : PC_KWH
+    $: encodeInd = (ind) => {
+        switch(ind) {
+            case selectFFInds[0]: return `Total ${energyUnit}`;
+            case selectFFInds[1]: return `Coal ${energyUnit}`;
+            case selectFFInds[2]: return `Gas ${energyUnit}`;
+            case selectFFInds[3]: return `Oil ${energyUnit}`;
+            case selectFFInds[4]: return `Renewable ${energyUnit}`;
+            default: return "";
+        }
+    }
+
 </script>
 
 <div class="trend-line-chart">
     <div class="ui-controls">
         <input type="checkbox" id="toggle-ff-percap" name="Show per capita value" bind:checked={toggleffPercap}>
         <label for="toggle-ff-percap">Show per capita value</label>
-        <div class="select-ff-indicators">
+        <div class="select-ff-indicator">
             {#each selectFFInds as selectFF}
                 <label>
                     <input type="radio" bind:group={selectFFValue} name="ffInds" value={selectFF}>
-                    {selectFF}
+                    {encodeInd(selectFF)}
                 </label>
             {/each}
         </div>
@@ -215,13 +230,18 @@
 <style>
 .trend-line-chart {
     margin: 20px auto;
+    font-size: 14px;
 }
 
 .ui-controls {
-    padding: 5px;
+    padding: 10px;
     border: 1px solid #ccc;
     margin: 5px 0;
     text-align: left;
+}
+
+.select-ff-indicator label {
+    margin-right: 10px;
 }
 
 .legends {
