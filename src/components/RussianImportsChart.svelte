@@ -1,15 +1,14 @@
 <script>
-    import * as aq from "arquero";
     import {line, curveBasis} from 'd3-shape';
 	import {scaleLinear, scaleUtc} from 'd3-scale';
 	import {max, extent} from 'd3-array'
     import RUdata from "../data/clean_RussianImports.json";
     
     export let filter;
-    export let highlight;
+    $: highlight = "Germany";
     
-    const height = 500
-    const width = 700
+    const height = 400
+    const width = 600
     const margin = { top: 20, right: 20, bottom: 20, left: 60 }
 
     const innerHeight = height - margin.top - margin.bottom;
@@ -35,30 +34,38 @@
         return "grey"
     }}
 
+    $: opacityScale = (country) => {if (country == highlight) {
+        return "1.0"
+    } else {
+        return "0.0"
+    }}
+
     $: strokeScale = (country) => {if (country == highlight) {
         return 2.5;
     } else {
         return 1.5;
     }}
 
-    $: linePath = (keyFF, keyEcon) => line()
+    $: linePath = (keyYear, keyFF) => line()
         .curve(curveBasis)
-        .x(d => xScale(d[keyFF]))
-        .y(d => yScale(d[keyEcon]))
+        .x(d => xScale(d[keyYear]))
+        .y(d => yScale(d[keyFF]))
    
-    function handleMouseOver(e) {
-		colour = "black";
-        opacity = "1.0"
-	}
-	function handleMouseOut(e) {
-		colour = 'white';
-        opacity = "0.0"
-	}
-
 </script>
 
 <div class="imports-line">
    <!-- <h3>Do what degree to countries rely on {filter} imports from Russia?</h3>-->
+   <section class="menu-cont">
+    <select class="menu" 
+                    name="menu" 
+                    id="menu" 
+                    bind:value={highlight}>
+        <option value="" selected>Select a country.</option>
+        {#each countries as country}
+            <option value={country}>{country}</option>
+        {/each}
+    </select>
+    </section>
     <svg
         {width}
         {height}
@@ -68,8 +75,10 @@
         {#each [1990, 1995, 2000, 2005, 2010, 2015, 2020] as tickValue}
             <!--move along the x axis according to calculation by xScale, move 0 at yAxis-->
             <g transform={`translate(${xScale(tickValue)},0)`}>
-            <line y2={innerHeight} stroke="black" />
-            <text text-anchor="middle" dy="1.71em" y={innerHeight}>
+            <line y2={innerHeight}
+            stroke="#333333"
+            stroke-width="1"/>
+            <text text-anchor="middle" dy="18" y={innerHeight +18}>
             {tickValue}
             </text>
             </g>
@@ -86,22 +95,14 @@
         {/each}
      
         <text text-anchor="end" dy=".71em" x={margin.left} y={margin.top}>%</text>
-      <!--  <text text-anchor="end" dy=".71em" x={width} y={height - margin.bottom}>Year</text>-->
+
         {#each countries as country, i}
             <path
                 d={linePath("Year", "Percentage")(data.filter(d => d.Country === country))}
                 stroke={colorScale(country)}
                 fill="none"
-                stroke-width={strokeScale(country)}
-            />
-
-            <text text-anchor="end"
-            x={width - margin.right}
-            y={yScale(data.filter(d => d.Country === country && d.Year === 2020)[0].Percentage)}
-            color = {colour}
-            opacity={opacity}
-            on:mouseover={handleMouseOver}
-            on:mouseout={handleMouseOut}>{country}</text>                
+                stroke-width={strokeScale(country)} 
+            />      
         {/each}
         </g>
     </svg>

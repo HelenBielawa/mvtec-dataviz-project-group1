@@ -7,16 +7,15 @@
   import TrendLinesChart from "./components/TrendLinesChart.svelte";
   import RussianImportsChart from "./components/RussianImportsChart.svelte";
 
-	let importFilter = "Natural Gas";
+  let importFilter = "Natural Gas";
+
 	function changeImportFilter(choice) {
         if (choice == "Natural Gas") {
             importFilter = "Natural Gas";
         } else if (choice == "Coal"){
             importFilter = "Coal";
-			console.log("Coal")
         } else if (choice == "Oil"){
             importFilter = "Oil";
-			console.log("Oil")
         }
     }
 </script>
@@ -33,12 +32,12 @@
 		</p>
 	</section>
 	<section class="content russian-imports">
-		<h3>How much do countries rely on {importFilter} imports from Russia?</h3>
+		<h3>Russian agression does not impact {importFilter} imports</h3>
 		<button on:click={() => changeImportFilter("Natural Gas")}>Gas</button>
 		<button on:click={() => changeImportFilter("Coal")}>Coal</button>
 		<button on:click={() => changeImportFilter("Oil")}>Oil</button>
 		<br>
-		<RussianImportsChart filter = {importFilter} highlight = "Germany"/>
+		<RussianImportsChart filter = {importFilter}/>
 		<br>
 		The chart shows which percentage of the countrie's consumption of each fossil fuel is imported from Russia. We don't see a clear pattern. But, a closer look at the chart reveals that countries which are close to Russia (e.g. Estonia and Lithuania) particularly depend on Russian imports. At first sight it might seem irritating that some countries import more than 100 percent of their consumption from Russia. That is because some import more than they consume, for example because they save it.<br>
 		We don't see a sharp decrease of fossil fuel imports from Russia after 2014 or in the following years. From that we conclude that political independence was not an important motivation to stop importing and to start producing more. However, this might change at the moment.
