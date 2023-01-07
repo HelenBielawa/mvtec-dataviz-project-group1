@@ -1,6 +1,7 @@
     
 <script>
     import { scaleBand, scaleLinear } from "d3-scale";
+  import colors from "d3-scale-chromatic/src/colors";
   
     export let data; //data that needs to be imported when using the component
   
@@ -35,7 +36,7 @@
         <!--move along the x axis according to calculation by xScale, move 0 at yAxis-->
         <g transform={`translate(${xScale(tickValue)},0)`}>
         <line y2={innerHeight} stroke="black" />
-        <text text-anchor="middle" dy=".71em" y={innerHeight + 3}>
+        <text text-anchor="middle" dy=".71em" y={innerHeight + 2}>
           {tickValue}
         </text>
       </g>

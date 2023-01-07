@@ -7273,30 +7273,6 @@
   },
   {
     "Country": "Estonia",
-    "Fossil_Fuel": "Oil",
-    "Year": 2018,
-    "Percentage": 162
-  },
-  {
-    "Country": "Estonia",
-    "Fossil_Fuel": "Oil",
-    "Year": 2019,
-    "Percentage": -864
-  },
-  {
-    "Country": "Estonia",
-    "Fossil_Fuel": "Oil",
-    "Year": 2020,
-    "Percentage": -398
-  },
-  {
-    "Country": "Estonia",
-    "Fossil_Fuel": "Oil",
-    "Year": 2021,
-    "Percentage": 6782
-  },
-  {
-    "Country": "Estonia",
     "Fossil_Fuel": "Natural Gas",
     "Year": 1990,
     "Percentage": 100
