@@ -23,10 +23,9 @@
             })}
         }, {}))
         .derive({ date: aq.escape(d => new Date(d.yr, 0, 1))})
-        .relocate( "date", { before: "yr" })
+        // .relocate( "date", { before: "yr" })
         .select(aq.not("yr"))
         .objects()
-    console.log(linesData)
 
     const xScaleLines = scaleLinear()
         .domain([0, 1])
@@ -48,7 +47,7 @@
     <svg
         {width}
         {height}
-        viewBox={[0, 0, width, height]}
+        viewBox={`0, 0, ${width}, ${height}`}
     >
         {#each continents as conti, i}
             <path

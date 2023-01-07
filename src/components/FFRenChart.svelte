@@ -1,5 +1,4 @@
 <script>
-    import { onMount } from "svelte";
     import * as aq from "arquero";
     import ffRenData from "../data/ffRenData.json"
     import {area, stack} from 'd3-shape';
@@ -14,15 +13,15 @@
         .slice(1)
         .filter(ind => ind.includes("percap") && !ind.includes("renewable"))
 
-    const width = 700
-    const height = 500
+    const width = 600
+    const height = 400
     const margin = {top: 20, right: 20, bottom: 20, left: 50};
     
     let togglePercap = false;
 
     let indicatorsUsed = !togglePercap ? indicators : indicatorsPercap
 
-    $: areaData = aq.from(ffRenData)
+    const areaData = aq.from(ffRenData)
         .derive(indicatorsUsed.reduce((obj, ind) => {
           return {...obj, [ind]: aq.escape(d => {
             if(d[ind]){
@@ -32,12 +31,12 @@
           })}
         }, {}))
         .derive({ 
-          date: aq.escape(d => new Date(d.year, 1, 1)),
+          date: aq.escape(d => new Date(d.year, 0, 1)),
           total: aq.escape(d => indicatorsUsed.reduce((sum, ind) => {
             return sum + d[ind]
           }, 0))
         })
-        .relocate( "date", { before: "year" } )
+        // .relocate( "date", { before: "year" } )
         .select(aq.not((!togglePercap ? indicatorsPercap : indicators), "year"))
         .orderby("date")
         .objects()
@@ -58,8 +57,11 @@
             return {...d, data: areaData[i]}
         }))
 
+    $: sDates = seriesData[0].map(d => d.data.date)
+    $: sYears = sDates.map(date => date.getFullYear())
+
     $: areaPath = area()
-        .x((d, i) => x(areaData[i].date))
+        .x((d, i) => x(sDates[i]))
         .y0(d => y(d[0]))
         .y1(d => y(d[1]))
 
@@ -71,17 +73,16 @@
         .domain([margin.left, width - margin.right])
         .range(extent(areaData, d => d.date))
 
-    $: sYears = seriesData[0].map(d => d.data.date.getFullYear())
-
     let ttVisibility = "hidden"
+    const X_OFFSET = 500
     $: year = 1900
     $: sIndex = 0
     $: isCursorOnRight = false
     $: mouseX = 0
     $: mouseY = 0
 
-    $: pointX = (sdpt) => x(sdpt[sIndex].data.date) || x(new Date(2000, 0, 1))
-    $: pointY = (sdpt) => y(sdpt[sIndex][1]) || y(0)
+    $: pointX = (sdpt) => sIndex > 0 ? x(sdpt[sIndex].data.date) : x(new Date(2000, 0, 1))
+    $: pointY = (sdpt) => sIndex > 0 ? y(sdpt[sIndex][1]) : y(0)
 
     function handleMouseOver () {
         ttVisibility = "visible"
@@ -89,14 +90,18 @@
 
     function handleMouseMove(e) {
         const {pageX, pageY} = e
-        mouseX = pageX
+        mouseX = pageX - X_OFFSET
         mouseY = pageY
 
         ttVisibility = "visible"
 
-        year = xRev(pageX).getFullYear()
+        year = xRev(mouseX).getFullYear()
         sIndex = sYears.indexOf(year)
-        isCursorOnRight = pageX > x(width / 2)
+        isCursorOnRight = mouseX > x(width / 2)
+
+        console.log("pageX: " + mouseX)
+        console.log("year: " + year)
+        console.log("sIndex: " + sIndex)
     }
 
     function handleMouseOut() {
@@ -111,17 +116,23 @@
         return `${ind}: ${valRound} (${perc}%)`
     }
 
+    // To prevent throwing an error where mouseover and mouseout requires
+    // accompanying onfocus and onblur
+    function handleFocus() {}
+    function handleBlur() {}
+
 </script>
 
 <div class="area-chart">
-    <h3>Renewable energy production remains insignificant compared to total fossil fuel production</h3>
     <svg
-        viewBox='0 0 {width - margin.right - margin.left} {height}'
+        viewBox='0 0 {width} {height}'
         {width}
         {height}
         on:mouseover={handleMouseOver}
         on:mousemove={handleMouseMove}
         on:mouseout={handleMouseOut}
+        on:focus={handleFocus}
+        on:blur={handleBlur}
     >
         <g class="paths-group">
             {#each seriesData as sData, i}
@@ -184,9 +195,8 @@
 <style>
 .area-chart {
     display: block;
-    height: 700px;
-    width: 700px;
-	padding: 1em;
+    height: 400px;
+    width: 100%;
 	margin: 0 0 2em 0;
 }
 </style>
