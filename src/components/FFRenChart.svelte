@@ -3,7 +3,7 @@
     import ffRenData from "../data/ffRenData.json"
     import {area, stack} from 'd3-shape';
 	import {scaleLinear, scaleUtc} from 'd3-scale';
-	import {max, extent} from 'd3-array'
+	import {max, min, extent, range} from 'd3-array'
     import {schemeCategory10} from "d3-scale-chromatic";
 
     const indicators = Object.keys(ffRenData[0])
@@ -11,7 +11,7 @@
         .filter(ind => !ind.includes("percap")) 
     const indicatorsPercap = Object.keys(ffRenData[0])
         .slice(1)
-        .filter(ind => ind.includes("percap") && !ind.includes("renewable"))
+        .filter(ind => ind.includes("percap"))
 
     const width = 600
     const height = 400
@@ -21,7 +21,7 @@
 
     let indicatorsUsed = !togglePercap ? indicators : indicatorsPercap
 
-    const areaData = aq.from(ffRenData)
+    $: areaData = aq.from(ffRenData)
         .derive(indicatorsUsed.reduce((obj, ind) => {
           return {...obj, [ind]: aq.escape(d => {
             if(d[ind]){
@@ -69,6 +69,8 @@
       return sum + d[ind]
     }, 0))
 
+    $: yValRange = range(0, yMax, yMax/5).map(y => Math.round(y.toFixed()/10000)*10000)
+
     $: xRev = scaleUtc()
         .domain([margin.left, width - margin.right])
         .range(extent(areaData, d => d.date))
@@ -93,26 +95,23 @@
         mouseX = pageX - X_OFFSET
         mouseY = pageY
 
-        ttVisibility = "visible"
-
         year = xRev(mouseX).getFullYear()
         sIndex = sYears.indexOf(year)
         isCursorOnRight = mouseX > x(width / 2)
 
-        console.log("pageX: " + mouseX)
-        console.log("year: " + year)
-        console.log("sIndex: " + sIndex)
+        const isXWithinRange =  year > min(sYears) && year < max(sYears)
+        ttVisibility = isXWithinRange ? "visible" : "hidden"
     }
 
     function handleMouseOut() {
         ttVisibility = "hidden"
     }
 
-    function getTooltipText(sdtt, i) {
+    $: getTooltipText = (sData, i) => {
         const ind = indicatorsUsed[i]
-        const valFixed = sdtt[sIndex].data[ind].toFixed(0)
+        const valFixed = sIndex >= 0 ? sData[sIndex].data[ind].toFixed(0) : 0
         const valRound = Math.round(valFixed / 100) * 100
-        const perc = ((valFixed / sdtt[sIndex].data.total) * 100).toPrecision(2)
+        const perc = sIndex >= 0 ? ((valFixed / sData[sIndex].data.total) * 100).toPrecision(2) : 0
         return `${ind}: ${valRound} (${perc}%)`
     }
 
@@ -124,7 +123,12 @@
 </script>
 
 <div class="area-chart">
+    <!-- <div class="checkbox-container">
+        <input type="checkbox" name="gdpPerCapCheck" bind:value={togglePercap}>
+        <label>Show GDP per capita values</label>
+    </div> -->
     <svg
+        class="svg-area-chart"
         viewBox='0 0 {width} {height}'
         {width}
         {height}
@@ -153,7 +157,7 @@
             >
                 {year}
             </text>
-            {#each seriesData as sdtt, i}
+            {#each seriesData as sData, i}
                 <text
                     class="tt-indicator"
                     x={isCursorOnRight ? mouseX - 10 : mouseX + 10}
@@ -162,32 +166,80 @@
                     dy={(i + 1) * 20}
                     visibility={ttVisibility}
                 >
-                    {getTooltipText(sdtt, i)}
+                    {getTooltipText(sData, i)}
                 </text>
             {/each}
-        </g>
-        <g class="vline">
-            <line 
-                x1={mouseX - 2.5}
-                x2={mouseY - 2.5}
-                y1="0"
-                y2={yMax}
-                stroke="#000000"
-                opacity="0.5"
-                visibility={ttVisibility}
-            />
-        </g>
-        <g class="points-group">
-            {#each seriesData as sdpt}
-                <circle
-                    r="5"
-                    cx={pointX(sdpt)}
-                    cy={pointY(sdpt)}
+            <g class="vline">
+                <line 
+                    x1={mouseX - 2.5}
+                    x2={mouseY - 2.5}
+                    y1="0"
+                    y2={yMax}
                     stroke="#000000"
-                    fill="none"
+                    opacity="0.5"
                     visibility={ttVisibility}
                 />
-            {/each}
+            </g>
+            <g class="points-group">
+                {#each seriesData as sdpt}
+                    <circle
+                        r="5"
+                        cx={pointX(sdpt)}
+                        cy={pointY(sdpt)}
+                        stroke="#000000"
+                        fill="none"
+                        visibility={ttVisibility}
+                    />
+                {/each}
+            </g>
+        </g>
+        <g class="axes">
+            <g class="x-axis">
+                <line
+                    class="horizontal-line"
+                    x1={0}
+                    x2={width}
+                    y1={height - margin.top}
+                    y2={height - margin.top}
+                    stroke="#333333"
+                    stroke-width="1"
+                />
+                {#each sDates.filter(dt => dt.getFullYear() % 20 === 0) as date}
+                    <g class="x-tick">
+                        <text
+                            class="x-tick-label"
+                            x={x(date)}
+                            y={height}
+                            text-anchor="middle"
+                        >
+                            {date.getFullYear()}    
+                        </text>
+                    </g>
+                {/each}
+            </g>
+            <g class="y-axis">
+                {#each yValRange as yVal}
+                    <g class="y-tick">
+                        <text
+                            class="y-tick-label"
+                            x={0}
+                            y={height - y(yVal) + margin.top}
+                            dy="18"
+                        >
+                        {yVal}
+                        </text>
+                        <line
+                            class="y-tick-line"
+                            x1={0}
+                            x2={width}
+                            y1={height - y(yVal) + margin.top}
+                            y2={height - y(yVal) + margin.top}
+                            stroke="#cccccc"
+                            stroke-width="0.5"
+                        />
+                    </g>
+                {/each}
+            </g>
         </g>
     </svg>
 </div>
