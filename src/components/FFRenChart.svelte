@@ -8,7 +8,7 @@
 
     const indicators = Object.keys(ffRenData[0])
         .slice(1)
-        .filter(ind => !ind.includes("percap")) 
+        .filter(ind => !ind.includes("percap"))
     const indicatorsPercap = Object.keys(ffRenData[0])
         .slice(1)
         .filter(ind => ind.includes("percap"))
@@ -18,14 +18,13 @@
     const margin = {top: 20, right: 20, bottom: 20, left: 50};
     
     let togglePercap = false;
-
-    let indicatorsUsed = !togglePercap ? indicators : indicatorsPercap
+    $: indicatorsUsed = !togglePercap ? indicators : indicatorsPercap
 
     $: areaData = aq.from(ffRenData)
         .derive(indicatorsUsed.reduce((obj, ind) => {
           return {...obj, [ind]: aq.escape(d => {
             if(d[ind]){
-              const [b, e] = d[ind].split("e")
+              const [b, e] = d[ind].split("e")  
               return b * Math.pow(10, e)
             } else return 0
           })}
@@ -46,7 +45,7 @@
         .range([margin.left, width - margin.right])
 
     $: y = scaleLinear()
-        .domain([0, max(areaData, d => indicators.reduce((sum, ind) => {
+        .domain([0, max(areaData, d => indicatorsUsed.reduce((sum, ind) => {
             return sum + d[ind]
         }, 0))]).nice()
         .range([height - margin.bottom, margin.top])
@@ -69,7 +68,8 @@
       return sum + d[ind]
     }, 0))
 
-    $: yValRange = range(0, yMax, yMax/5).map(y => Math.round(y.toFixed()/10000)*10000)
+    $: yValRange = range(0, 1.2*yMax, (1.2*yMax)/5)
+        .map(y => Math.round(y.toFixed()/10000)*10000)
 
     $: xRev = scaleUtc()
         .domain([margin.left, width - margin.right])
@@ -99,7 +99,7 @@
         sIndex = sYears.indexOf(year)
         isCursorOnRight = mouseX > x(width / 2)
 
-        const isXWithinRange =  year > min(sYears) && year < max(sYears)
+        let isXWithinRange =  year > min(sYears) && year < max(sYears)
         ttVisibility = isXWithinRange ? "visible" : "hidden"
     }
 
@@ -123,10 +123,18 @@
 </script>
 
 <div class="area-chart">
-    <!-- <div class="checkbox-container">
-        <input type="checkbox" name="gdpPerCapCheck" bind:value={togglePercap}>
-        <label>Show GDP per capita values</label>
-    </div> -->
+    <div class="ui-controls">
+        <input type="checkbox" id="toggle-gdp-per-cap" bind:checked={togglePercap}>
+        <label for="toggle-gdp-per-cap">Show per capita values (kWh)</label>
+    </div>
+    <div class="legends">
+        {#each indicatorsUsed as ind, i}
+            <div class="legend-container">
+                <div class="legend-color" style={`background-color: ${schemeCategory10[i]};`}></div>
+                <span class="">{ind}</span>
+            </div>
+        {/each}
+    </div>
     <svg
         class="svg-area-chart"
         viewBox='0 0 {width} {height}'
@@ -196,7 +204,7 @@
         <g class="axes">
             <g class="x-axis">
                 <line
-                    class="horizontal-line"
+                    class="horizontal-rule"
                     x1={0}
                     x2={width}
                     y1={height - margin.top}
@@ -223,7 +231,7 @@
                         <text
                             class="y-tick-label"
                             x={0}
-                            y={height - y(yVal) + margin.top}
+                            y={y(yVal)}
                             dy="18"
                         >
                         {yVal}
@@ -232,8 +240,8 @@
                             class="y-tick-line"
                             x1={0}
                             x2={width}
-                            y1={height - y(yVal) + margin.top}
-                            y2={height - y(yVal) + margin.top}
+                            y1={y(yVal)}
+                            y2={y(yVal)}
                             stroke="#cccccc"
                             stroke-width="0.5"
                         />
@@ -247,8 +255,34 @@
 <style>
 .area-chart {
     display: block;
-    height: 400px;
+    height: 450px;
     width: 100%;
 	margin: 0 0 2em 0;
+}
+
+.ui-controls {
+    padding: 5px;
+    border: 1px solid #ccc;
+    margin: 5px 0;
+    text-align: left;
+}
+
+.legends {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    padding: 5px;
+    border: 1px solid #ccc;
+    margin: 5px 0;
+}
+
+.legend-container {
+    padding: 5px 10px;
+}
+
+.legend-color {
+    height: 10px;
+    width: 10px;
+    display: inline-block;
 }
 </style>
