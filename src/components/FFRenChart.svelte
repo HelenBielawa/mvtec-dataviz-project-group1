@@ -6,12 +6,9 @@
 	import {max, min, extent, range} from 'd3-array'
     import {schemeCategory10} from "d3-scale-chromatic";
 
-    const indicators = Object.keys(ffRenData[0])
-        .slice(1)
-        .filter(ind => !ind.includes("percap"))
-    const indicatorsPercap = Object.keys(ffRenData[0])
-        .slice(1)
-        .filter(ind => ind.includes("percap"))
+    const allInds = Object.keys(ffRenData[0]).slice(1).sort((indA, indB) => indA.localeCompare(indB))
+    const indicators = allInds.filter(ind => !ind.includes("percap"))
+    const indicatorsPercap = allInds.filter(ind => ind.includes("percap"))
 
     const width = 600
     const height = 400
@@ -112,9 +109,8 @@
         const valFixed = sIndex >= 0 ? sData[sIndex].data[ind].toFixed(0) : 0
         const valRound = Math.round(valFixed / 100) * 100
         const perc = sIndex >= 0 ? ((valFixed / sData[sIndex].data.total) * 100).toPrecision(2) : 0
-        const indClean = !togglePercap ? ind.replace("prod", "") : 
-            ind.includes("prodpercap") ? ind.replace("prodpercap", "") : ind.replace("percap", "")
-        return `${indClean}: ${valRound} (${perc}%)`
+        const indNeat = ind.replace("percap", "").replace("prod", "")
+        return `${indNeat}: ${valRound} (${perc}%)`
     }
 
     // To prevent throwing an error where mouseover and mouseout requires
