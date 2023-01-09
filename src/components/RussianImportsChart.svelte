@@ -95,7 +95,6 @@
         {/each}
      
         <text text-anchor="end" dy=".71em" x={margin.left} y={margin.top}>%</text>
-
         {#each countries as country, i}
             <path
                 d={linePath("Year", "Percentage")(data.filter(d => d.Country === country))}
